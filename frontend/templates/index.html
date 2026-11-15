@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PyroNexa 26 &bull; Satellite Fire Intelligence Platform</title>
+  
+  <!-- Favicon SVG -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔥</text></svg>">
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+  <!-- PyroNexa Custom Theme CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+</head>
+<body>
+
+  <!-- Loading Overlay -->
+  <div id="global-loading" class="loading-overlay">
+    <div class="text-center text-light">
+      <div class="spinner-border text-info mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+      <div class="fw-semibold tracking-wide">Harmonizing Satellite Hotspot Feeds...</div>
+      <div class="small text-muted mt-1">Cross-referencing MODIS Terra/Aqua with VIIRS NOAA-20/21</div>
+    </div>
+  </div>
+
+  <!-- Top Navbar -->
+  <header class="pyronexa-navbar">
+    <div class="container-fluid d-flex flex-wrap align-items-center justify-content-between">
+      
+      <!-- Brand & Project Identity -->
+      <div class="d-flex align-items-center me-4">
+        <span class="fs-4 me-2">🛰️</span>
+        <div>
+          <span class="fw-bold fs-5 text-white tracking-wide">PYRONEXA</span>
+          <span class="brand-badge">SPACE APPS 26</span>
+          <div class="small text-dim" style="font-size: 0.7rem; margin-top: -2px;">NASA MODIS & VIIRS Fire Intelligence Platform</div>
+        </div>
+      </div>
+
+      <!-- Main Navigation Links -->
+      <nav class="d-flex flex-wrap gap-1 my-2 my-lg-0">
+        <a class="nav-link-custom active" data-section="overview">Overview</a>
+        <a class="nav-link-custom" data-section="map">Live Fire Map</a>
+        <a class="nav-link-custom" data-section="calendar">Burning Calendar</a>
+        <a class="nav-link-custom" data-section="historical">Historical Analysis</a>
+        <a class="nav-link-custom" data-section="comparison">Sensor Comparison</a>
+        <a class="nav-link-custom" data-section="anomalies">Anomaly Detection</a>
+        <a class="nav-link-custom" data-section="explorer">Data Explorer</a>
+        <a class="nav-link-custom" data-section="about">About & Science</a>
+      </nav>
+
+      <!-- Connection Status & Key Setup Button -->
+      <div class="d-flex align-items-center gap-2">
+        <div id="api-status-pill" class="status-pill sample-mode" data-bs-toggle="modal" data-bs-target="#keyModal" style="cursor: pointer;">
+          <span class="status-dot"></span>
+          <span id="api-status-label">SIMULATION MODE (Sample Data)</span>
+        </div>
+        <button class="btn btn-sm btn-pyro-outline" data-bs-toggle="modal" data-bs-target="#keyModal">
+          ⚙️ API Key
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Interactive Global Filter Bar -->
+  <div class="filter-bar">
+    <div class="container-fluid">
+      <div class="row g-2 align-items-end">
+        
+        <!-- Region Preset -->
+        <div class="col-12 col-md-3 col-lg-2">
+          <label class="filter-label">Area of Interest</label>
+          <select id="filter-region" class="form-select filter-select">
+            {% for key, reg in preset_regions.items() %}
+              <option value="{{ key }}" {% if key == default_region %}selected{% endif %}>{{ reg.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Sensor Selection -->
+        <div class="col-6 col-md-2 col-lg-2">
+          <label class="filter-label">Satellite Sensor</label>
+          <select id="filter-sensor" class="form-select filter-select">
+            <option value="ALL" selected>All Sensors (MODIS & VIIRS)</option>
+            <option value="MODIS">MODIS Only (Terra/Aqua 1km)</option>
+            <option value="VIIRS">VIIRS Only (NOAA-20/21 375m)</option>
+            <option value="MODIS_TERRA">MODIS Terra</option>
+            <option value="MODIS_AQUA">MODIS Aqua</option>
+            <option value="VIIRS_NOAA20">VIIRS NOAA-20 (JPSS-1)</option>
+            <option value="VIIRS_NOAA21">VIIRS NOAA-21 (JPSS-2)</option>
+            <option value="VIIRS_SNPP">VIIRS Suomi NPP</option>
+          </select>
+        </div>
+
+        <!-- Confidence Filter -->
+        <div class="col-6 col-md-2 col-lg-2">
+          <label class="filter-label">Harmonized Confidence</label>
+          <select id="filter-confidence" class="form-select filter-select">
+            <option value="all" selected>All Confidence Levels</option>
+            <option value="high">High Confidence (&ge;80% / 'h')</option>
+            <option value="nominal">Nominal Confidence (30-79% / 'n')</option>
+            <option value="low">Low Confidence (&lt;30% / 'l')</option>
+          </select>
+        </div>
+
+        <!-- Start Date -->
+        <div class="col-6 col-md-2 col-lg-2">
+          <label class="filter-label">Start Date</label>
+          <input type="date" id="filter-start-date" class="form-control filter-input">
+        </div>
+
+        <!-- End Date -->
+        <div class="col-6 col-md-2 col-lg-2">
+          <label class="filter-label">End Date</label>
+          <input type="date" id="filter-end-date" class="form-control filter-input">
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="col-12 col-md-1 col-lg-2 d-flex gap-2">
+          <button id="btn-apply-filters" class="btn btn-pyro-primary flex-fill">Apply</button>
+          <button id="btn-reset-filters" class="btn btn-pyro-outline" title="Reset Filters">&#8635;</button>
+          <button id="btn-export-csv" class="btn btn-pyro-outline" title="Export Current View as CSV">📥 CSV</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Container -->
+  <main class="container-fluid py-4 flex-grow-1">
+
+    <!-- ====================================================================
+         SECTION 1: OVERVIEW
+         ==================================================================== -->
+    <section id="section-overview" class="dashboard-section active-section">
+      
+      <!-- KPI Metric Cards -->
+      <div class="row g-3 mb-4">
+        
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="pyro-card h-100">
+            <div class="kpi-title">Total Active Hotspots</div>
+            <div id="kpi-total-detections" class="kpi-value">0</div>
+            <div class="kpi-sub d-flex justify-content-between align-items-center">
+              <span>Across selected bounds</span>
+              <span class="badge badge-harmonized">Harmonized Record</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="pyro-card h-100">
+            <div class="kpi-title">MODIS Detections (1 km)</div>
+            <div id="kpi-modis-detections" class="kpi-value text-info">0</div>
+            <div class="kpi-sub d-flex justify-content-between">
+              <span>Terra & Aqua</span>
+              <span class="badge badge-modis">MODIS Archive</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="pyro-card h-100">
+            <div class="kpi-title">VIIRS Detections (375 m)</div>
+            <div id="kpi-viirs-detections" class="kpi-value text-warning">0</div>
+            <div class="kpi-sub d-flex justify-content-between">
+              <span>NOAA-20/21 & S-NPP</span>
+              <span id="kpi-viirs-ratio" class="badge badge-viirs">0x MODIS</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="pyro-card h-100">
+            <div class="kpi-title">Radiative Power / Area</div>
+            <div id="kpi-total-frp" class="kpi-value text-danger">0 MW</div>
+            <div class="kpi-sub d-flex justify-content-between">
+              <span id="kpi-total-area">0 km² footprint</span>
+              <span class="text-muted">Thermal Energy</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Distribution Charts & Satellite Provenance -->
+      <div class="row g-3">
+        
+        <div class="col-12 col-lg-4">
+          <div class="pyro-card h-100">
+            <div class="card-title-custom">
+              <span>Sensor Share (MODIS vs VIIRS)</span>
+              <span class="text-dim small">Pixel Count</span>
+            </div>
+            <div id="chart-sensor-pie"></div>
+            <div class="small text-muted text-center mt-2">
+              <em>VIIRS 375m resolves significantly more sub-pixel hotspots than MODIS 1km over identical perimeters.</em>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+          <div class="pyro-card h-100">
+            <div class="card-title-custom">
+              <span>Diurnal Overpasses</span>
+              <span class="text-dim small">Solar Peak vs Night</span>
+            </div>
+            <div id="chart-daynight"></div>
+            <div class="small text-muted text-center mt-2">
+              <em>Daytime overpasses (~13:30 local) capture diurnal fire intensity peaks.</em>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+          <div class="pyro-card h-100">
+            <div class="card-title-custom">
+              <span>Satellite & Quality Provenance</span>
+              <span class="badge bg-secondary bg-opacity-25 text-info">NASA LANCE</span>
+            </div>
+            <div class="mb-3">
+              <div class="filter-label mb-1">Platform Breakdown</div>
+              <div id="overview-satellites-list"></div>
+            </div>
+            <div>
+              <div class="filter-label mb-1">Confidence Classification</div>
+              <div id="overview-confidence-list"></div>
+            </div>
+            <div class="mt-3 pt-2 border-top border-secondary border-opacity-25 small text-muted">
+              <strong>Observation Period:</strong> <span id="overview-date-span">Loading...</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ====================================================================
+         SECTION 2: LIVE FIRE MAP
+         ==================================================================== -->
+    <section id="section-map" class="dashboard-section">
+      <div class="pyro-card p-2 position-relative">
+        
+        <!-- Map Toolbar -->
+        <div class="map-toolbar">
+          <div class="form-check form-switch m-0 d-flex align-items-center">
+            <input class="form-check-input me-2" type="checkbox" id="map-toggle-frp-scale" checked>
+            <label class="form-check-label small text-light" for="map-toggle-frp-scale">Scale radius by FRP</label>
+          </div>
+          <button id="map-btn-fit" class="btn btn-xs btn-pyro-outline py-0 px-2" style="font-size: 0.75rem;">Fit Bounds</button>
+        </div>
+
+        <!-- Map Leaflet Container -->
+        <div id="map-container"></div>
+
+        <!-- Map Footer Inspector -->
+        <div class="d-flex justify-content-between align-items-center px-3 py-2 small text-muted">
+          <div>
+            <span id="map-point-count" class="text-light fw-semibold">0 hotspots plotted</span>
+            <span class="mx-2">&bull;</span>
+            <span class="text-info">&#9679; Blue: MODIS 1km</span>
+            <span class="mx-2">&bull;</span>
+            <span class="text-warning">&#9679; Orange: VIIRS 375m</span>
+          </div>
+          <div>
+            <span id="map-coord-inspector">Hover over map for coordinates</span>
+            <span class="mx-2">&bull;</span>
+            <span id="map-zoom-inspector">Zoom: 6</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         SECTION 3: BURNING ACTIVITY CALENDAR
+         ==================================================================== -->
+    <section id="section-calendar" class="dashboard-section">
+      <div class="pyro-card">
+        <div class="card-title-custom">
+          <div>
+            <span class="fs-5">🔥 Burning Activity Calendar</span>
+            <div class="small text-muted">Year-versus-Month active fire density matrix across the satellite era</div>
+          </div>
+          <span class="badge bg-danger bg-opacity-25 text-danger">Multi-Year Seasonal Cycle</span>
+        </div>
+        
+        <div id="chart-calendar-heatmap"></div>
+
+        <div class="row g-3 mt-2 pt-3 border-top border-secondary border-opacity-25">
+          <div class="col-md-4">
+            <div class="p-3 bg-dark rounded border border-secondary border-opacity-25">
+              <div class="filter-label">Seasonal Fire Dynamics</div>
+              <div class="small text-muted">
+                Highlights peak burning months (e.g. Jul-Oct for Western US & Amazon; Nov-Feb for SE Australia). Cells represent aggregated monthly hotspot detections.
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-3 bg-dark rounded border border-secondary border-opacity-25">
+              <div class="filter-label">Multi-Year Climate Anomalies</div>
+              <div class="small text-muted">
+                Directly exposes severe historical drought and fire surge years (such as 2021 and 2023) against baseline conditions.
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-3 bg-dark rounded border border-secondary border-opacity-25">
+              <div class="filter-label">Interactive Tooltips</div>
+              <div class="small text-muted">
+                Hover over any month cell to inspect exact hotspot volume, cumulative Fire Radiative Power (MW), and baseline variance.
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         SECTION 4: HISTORICAL ANALYSIS
+         ==================================================================== -->
+    <section id="section-historical" class="dashboard-section">
+      
+      <div class="pyro-card mb-4">
+        <div class="card-title-custom">
+          <div>
+            <span class="fs-5">📈 Multi-Year Monthly Timeline</span>
+            <div class="small text-muted">Continuous historical trajectory comparing MODIS (1km) and VIIRS (375m)</div>
+          </div>
+          <span class="badge badge-harmonized">Time Series</span>
+        </div>
+        <div id="chart-historical-timeline"></div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-12 col-lg-6">
+          <div class="pyro-card h-100">
+            <div class="card-title-custom">
+              <span>Seasonal Baseline Decomposition</span>
+              <span class="badge bg-info bg-opacity-25 text-info">12-Month Median</span>
+            </div>
+            <div id="chart-seasonal-baseline"></div>
+            <div class="small text-muted mt-2">
+              Shows climatological median active fire count for each calendar month with 25th-75th percentile interquartile envelope.
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+          <div class="pyro-card h-100">
+            <div class="card-title-custom">
+              <span>Annual Fire Activity</span>
+              <span class="badge bg-secondary bg-opacity-25 text-light">Yearly Cumulative</span>
+            </div>
+            <div id="chart-yearly-trends"></div>
+            <div class="small text-muted mt-2">
+              Stacked annual volume showing relative sensor contribution and annual variability across the observation archive.
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ====================================================================
+         SECTION 5: SENSOR COMPARISON
+         ==================================================================== -->
+    <section id="section-comparison" class="dashboard-section">
+      
+      <!-- Scientific Warning Banner -->
+      <div class="alert alert-dark border-info border-opacity-50 text-light mb-4 d-flex align-items-center">
+        <span class="fs-3 me-3">🔬</span>
+        <div>
+          <strong>NASA Space Apps Harmonization Principle:</strong>
+          Raw MODIS and VIIRS hotspot counts must <em>not</em> be combined into a single sum without normalization. Due to the 375m vs 1km spatial resolution difference (~7x area difference per pixel at nadir), VIIRS detects between 3.0x and 4.5x more active fire pixels over the same perimeter.
+        </div>
+      </div>
+
+      <!-- Comparative Metrics Table -->
+      <div class="row g-3 mb-4">
+        <div class="col-12 col-lg-6">
+          <div class="pyro-card h-100 border-primary border-opacity-50">
+            <div class="card-title-custom text-info">
+              <span>MODIS (Terra & Aqua)</span>
+              <span class="badge badge-modis">Baseline Heritage</span>
+            </div>
+            <ul class="list-unstyled small text-muted">
+              <li class="py-1 border-bottom border-secondary border-opacity-25 d-flex justify-content-between">
+                <span>Nominal Resolution:</span> <strong class="text-light">1,000 meters (1.0 km nadir)</strong>
+              </li>
+              <li class="py-1 border-bottom border-secondary border-opacity-25 d-flex justify-content-between">
+                <span>Pixel Area Growth (Bowtie Distortion):</span> <strong class="text-light">1.0 km² &rarr; ~9.6 km² at edge</strong>
+              </li>
+              <li class="py-1 border-bottom border-secondary border-opacity-25 d-flex justify-content-between">
+                <span>Equatorial Overpass (Local Solar):</span> <strong class="text-light">Terra: 10:30 AM/PM | Aqua: 13:30 PM/AM</strong>
+              </li>
+              <li class="py-1 border-bottom border-secondary border-opacity-25 d-flex justify-content-between">
+                <span>Confidence Representation:</span> <strong class="text-light">Percentage [0 - 100%] Bayesian probability</strong>
+              </li>
+              <li class="py-1 d-flex justify-content-between">
+                <span>Historical Continuity:</span> <strong class="text-light">Continuous archive since 2000 (Terra) / 2002 (Aqua)</strong>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+          <div class="pyro-card h-100 border-warning border-opacity-50">
+            <div class="card-title-custom text-warning">
+              <span>VIIRS (NOAA-20, NOAA-21, Suomi-NPP)</span>
+              <span class="badge badge-viirs">High-Resolution Continuity</span>
+            </div>
+            <ul class="list-unstyled small text-muted">
+              <li class="py-1 border-bottom border-secondary border-opacity-25 d-flex justify-content-between">
+                <span>Nominal Resolution:</span> <strong class="text-light">375 meters (I-band)</strong>
+              </li>
+              <li class="py-1 border-bottom border-secondary border-opacity-25 d-flex justify-content-between">
+                <span>Pixel Area Growth (3:1 Aggregation):</span> <strong class="text-light">0.14 km² &rarr; &le; 0.6 km² at edge</strong>
+              </li>
+              <li class="py-1 border-bottom border-secondary border-opacity-25 d-flex justify-content-between">
+                <span>Equatorial Overpass (Local Solar):</span> <strong class="text-light">13:30 PM/AM (50-min phased orbit)</strong>
+              </li>
+              <li class="py-1 border-bottom border-secondary border-opacity-25 d-flex justify-content-between">
+                <span>Confidence Representation:</span> <strong class="text-light">Categorical ('low', 'nominal', 'high')</strong>
+              </li>
+              <li class="py-1 d-flex justify-content-between">
+                <span>Operational Status:</span> <strong class="text-light">NOAA-20 & NOAA-21 operational continuity</strong>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Comparison Visualizations -->
+      <div class="row g-3">
+        <div class="col-12 col-lg-6">
+          <div class="pyro-card h-100">
+            <div class="card-title-custom">
+              <span>Relative Fire Activity Index (RFAI)</span>
+              <span class="badge badge-harmonized">Dimensionless Harmonization</span>
+            </div>
+            <div id="chart-rfai-comparison"></div>
+            <div class="small text-muted mt-2">
+              RFAI normalizes each sensor against its independent historical seasonal median ($RFAI = Count / Median_{month}$). This enables scientifically valid trend comparison without inventing artificial calibration constants.
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+          <div class="pyro-card h-100">
+            <div class="card-title-custom">
+              <span>FRP Distribution (Fire Radiative Power)</span>
+              <span class="badge bg-danger bg-opacity-25 text-danger">Megawatts (MW)</span>
+            </div>
+            <div id="chart-frp-distribution"></div>
+            <div class="small text-muted mt-2">
+              Comparison of pixel-level radiative power quantiles. MODIS 1km pixels aggregate more thermal output per pixel, while VIIRS resolves smaller sub-pixel burning components.
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ====================================================================
+         SECTION 6: ANOMALY DETECTION
+         ==================================================================== -->
+    <section id="section-anomalies" class="dashboard-section">
+      
+      <div class="pyro-card mb-4">
+        <div class="card-title-custom">
+          <div>
+            <span class="fs-5">⚠️ Statistical Anomaly Detection</span>
+            <div class="small text-muted">Transparent standardized anomaly scoring relative to calendar-month historical baselines</div>
+          </div>
+          <span class="badge bg-warning bg-opacity-25 text-warning">Z-Score & MAD Methodology</span>
+        </div>
+
+        <div id="chart-anomalies-timeline"></div>
+
+        <div class="row g-3 mt-3 pt-3 border-top border-secondary border-opacity-25">
+          <div class="col-md-3">
+            <div class="p-3 bg-dark rounded border border-danger border-opacity-50">
+              <span class="badge badge-extreme mb-1">Extreme Fire Activity</span>
+              <div class="fw-bold text-light">$Z \ge 3.0$</div>
+              <div class="small text-muted">Deviations exceeding the 99.7th percentile of historical monthly baseline.</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="p-3 bg-dark rounded border border-warning border-opacity-50">
+              <span class="badge badge-high mb-1">High Anomaly</span>
+              <div class="fw-bold text-light">$2.0 \le Z < 3.0$</div>
+              <div class="small text-muted">Substantial divergence between 2 and 3 standard deviations above median.</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="p-3 bg-dark rounded border border-warning border-opacity-25">
+              <span class="badge badge-elevated mb-1">Elevated Activity</span>
+              <div class="fw-bold text-light">$1.0 \le Z < 2.0$</div>
+              <div class="small text-muted">Moderate elevation above expected seasonal conditions.</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="p-3 bg-dark rounded border border-success border-opacity-25">
+              <span class="badge badge-normal mb-1">Normal Level</span>
+              <div class="fw-bold text-light">$Z < 1.0$</div>
+              <div class="small text-muted">Within normal historical climatological range.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Anomaly Table -->
+      <div class="pyro-card">
+        <div class="card-title-custom">
+          <span>Monthly Anomaly Records</span>
+          <span class="text-dim small">Evaluated against historical seasonal median</span>
+        </div>
+        <div class="table-responsive" style="max-height: 380px;">
+          <table class="pyro-table">
+            <thead>
+              <tr>
+                <th>Year-Month</th>
+                <th>Observed Hotspots</th>
+                <th>Seasonal Baseline Median</th>
+                <th>Z-Score</th>
+                <th>Modified Z (MAD)</th>
+                <th>% of Baseline</th>
+                <th>Severity Category</th>
+              </tr>
+            </thead>
+            <tbody id="anomaly-table-body">
+              <tr>
+                <td colspan="7" class="text-center py-3 text-muted">Loading anomaly analysis...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="small text-muted mt-3">
+          <strong>Scientific Notice:</strong> Statistical anomaly scoring quantifies historical divergence in satellite hotspot frequency. It does <em>not</em> constitute a wildfire forecast, fire behavior simulation, or ground danger rating.
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ====================================================================
+         SECTION 7: DATA EXPLORER
+         ==================================================================== -->
+    <section id="section-explorer" class="dashboard-section">
+      <div class="pyro-card">
+        
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+          <div>
+            <span class="fs-5 fw-bold text-white">📋 Satellite Hotspot Data Explorer</span>
+            <div id="table-records-count" class="small text-muted">Showing 0 matching records</div>
+          </div>
+          <div class="d-flex gap-2">
+            <input type="text" id="table-search-input" class="form-control filter-input" placeholder="🔍 Search records..." style="width: 240px;">
+            <button class="btn btn-sm btn-pyro-primary" onclick="PyroNexa.triggerCsvExport()">📥 Export CSV</button>
+          </div>
+        </div>
+
+        <div class="table-responsive" style="max-height: 520px;">
+          <table class="pyro-table">
+            <thead>
+              <tr>
+                <th onclick="PyroExplorer.setSort('instrument')" style="cursor: pointer;">Instrument &#8693;</th>
+                <th onclick="PyroExplorer.setSort('satellite')" style="cursor: pointer;">Satellite &#8693;</th>
+                <th onclick="PyroExplorer.setSort('acq_date')" style="cursor: pointer;">Date &#8693;</th>
+                <th>Time (UTC)</th>
+                <th onclick="PyroExplorer.setSort('latitude')" style="cursor: pointer;">Lat &#8693;</th>
+                <th onclick="PyroExplorer.setSort('longitude')" style="cursor: pointer;">Lon &#8693;</th>
+                <th onclick="PyroExplorer.setSort('confidence_cat')" style="cursor: pointer;">Confidence &#8693;</th>
+                <th onclick="PyroExplorer.setSort('frp')" style="cursor: pointer;">FRP (MW) &#8693;</th>
+                <th>Area (km²)</th>
+                <th>Grid Cell</th>
+              </tr>
+            </thead>
+            <tbody id="table-fires-body">
+              <tr>
+                <td colspan="10" class="text-center py-4 text-muted">Loading satellite active fire records...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="table-pagination-controls" class="mt-3"></div>
+
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         SECTION 8: ABOUT & SCIENCE
+         ==================================================================== -->
+    <section id="section-about" class="dashboard-section">
+      
+      <div class="row g-4">
+        
+        <div class="col-12 col-lg-8">
+          
+          <div class="pyro-card">
+            <div class="card-title-custom">
+              <span class="fs-5">🛰️ About PyroNexa & The NASA Space Apps Challenge</span>
+              <span class="badge bg-primary bg-opacity-25 text-info">2026 Challenge Solution</span>
+            </div>
+            <p class="text-light">
+              <strong>PyroNexa</strong> is a state-of-the-art satellite fire intelligence platform built for the <strong>2026 NASA Space Apps Challenge</strong> under the challenge category <em>"Harmonization of MODIS and VIIRS Hot Spots"</em>.
+            </p>
+            <p class="text-muted">
+              Earth observation satellites provide indispensable situational awareness for wildfire monitoring, forest conservation, and disaster response. However, combining NASA's two flagship thermal observation sensors—<strong>MODIS</strong> (onboard Terra and Aqua) and <strong>VIIRS</strong> (onboard Suomi NPP, NOAA-20, and NOAA-21)—presents severe scientific challenges due to substantial discrepancies in spatial resolution, scan geometry, detection thresholds, and confidence representations.
+            </p>
+            <p class="text-muted">
+              PyroNexa solves this harmonization dilemma through a transparent, mathematically rigorous framework that preserves scientific provenance without fabricating false equivalences or uncalibrated regression coefficients.
+            </p>
+
+            <h6 class="text-white mt-4 mb-2">Scientific Architecture & Harmonization Principles</h6>
+            <div class="row g-2 mb-3">
+              <div class="col-md-6">
+                <div class="p-3 bg-dark rounded border border-secondary border-opacity-25 h-100">
+                  <div class="fw-semibold text-info mb-1">1. Discrete Spatial Grid Binning</div>
+                  <div class="small text-muted">
+                    Hotspots are aggregated into standardized 0.25&deg; (~25 km) grid cells, tracking both raw detection density and unique burning cell area.
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="p-3 bg-dark rounded border border-secondary border-opacity-25 h-100">
+                  <div class="fw-semibold text-info mb-1">2. Ground Footprint Area (FPA) Normalization</div>
+                  <div class="small text-muted">
+                    Accounts for MODIS panoramic bowtie expansion (~1.0 km&sup2; to ~9.6 km&sup2;) versus VIIRS 3:1 along-scan sample aggregation (&le; 0.6 km&sup2;).
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="p-3 bg-dark rounded border border-secondary border-opacity-25 h-100">
+                  <div class="fw-semibold text-info mb-1">3. Relative Fire Activity Index (RFAI)</div>
+                  <div class="small text-muted">
+                    Evaluates observations against independent sensor historical monthly medians, yielding a dimensionless comparative index ($RFAI = Count / Median_{month}$).
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="p-3 bg-dark rounded border border-secondary border-opacity-25 h-100">
+                  <div class="fw-semibold text-info mb-1">4. Robust Dual Anomaly Detection</div>
+                  <div class="small text-muted">
+                    Calculates both parametric Z-scores and Median Absolute Deviation (MAD) on calendar-month subsets to filter out seasonal fire cycle confounding.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <h6 class="text-white mt-4 mb-2">NASA FIRMS Data Sources</h6>
+            <ul class="text-muted small">
+              <li><strong>MODIS NRT & Science Quality (MOD14 / MYD14):</strong> Terra (10:30 AM/PM) & Aqua (13:30 PM/AM). NASA LANCE / FIRMS.</li>
+              <li><strong>VIIRS 375m Active Fire (VNP14IMGTDL / VJ114IMGTDL / VJ214IMGTDL):</strong> NOAA-20 (JPSS-1), NOAA-21 (JPSS-2), and Suomi-NPP. NASA FIRMS.</li>
+              <li><strong>NASA FIRMS API:</strong> <a href="https://firms.modaps.eosdis.nasa.gov/api/" target="_blank" class="text-info">https://firms.modaps.eosdis.nasa.gov/api/</a></li>
+            </ul>
+
+          </div>
+
+        </div>
+
+        <div class="col-12 col-lg-4">
+          
+          <!-- Team & Project Card -->
+          <div class="pyro-card mb-4">
+            <div class="card-title-custom">
+              <span>Team & Project Info</span>
+              <span class="badge bg-warning bg-opacity-25 text-warning">2026 Submission</span>
+            </div>
+            <div class="small text-muted mb-2"><strong>Team Name:</strong> PyroNexa 26</div>
+            <div class="small text-muted mb-2"><strong>Challenge:</strong> Harmonization of MODIS and VIIRS Hot Spots</div>
+            <div class="small text-muted mb-2"><strong>Technology Stack:</strong> Python 3.14, Flask, Pandas, NumPy, SciPy, Leaflet, Plotly, Bootstrap 5</div>
+            <div class="small text-muted mb-2"><strong>License:</strong> MIT Open Source</div>
+          </div>
+
+          <!-- Configuration Help Card -->
+          <div class="pyro-card">
+            <div class="card-title-custom">
+              <span>NASA FIRMS API Key Setup</span>
+              <span class="badge bg-success bg-opacity-25 text-success">Free Access</span>
+            </div>
+            <p class="small text-muted">
+              To connect PyroNexa to live NASA FIRMS satellite telemetry:
+            </p>
+            <ol class="small text-muted ps-3 mb-3">
+              <li>Request a free MAP key from <a href="https://firms.modaps.eosdis.nasa.gov/api/map_key/" target="_blank" class="text-info">NASA FIRMS</a>.</li>
+              <li>Add your key to the project root <code>.env</code> file: <code>FIRMS_MAP_KEY=your_key_here</code>.</li>
+              <li>Restart the server or click the API Key button in the header.</li>
+            </ol>
+            <div class="p-2 bg-dark rounded border border-secondary border-opacity-25 small text-light">
+              <em>Note: Without a key, PyroNexa automatically runs in Simulation Mode using multi-year verified NASA sample datasets.</em>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- NASA FIRMS API Key Modal -->
+  <div class="modal fade" id="keyModal" tabindex="-1" aria-labelledby="keyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content bg-dark border border-secondary text-light">
+        <div class="modal-header border-secondary border-opacity-50">
+          <h5 class="modal-title" id="keyModalLabel">🛰️ NASA FIRMS API Key Configuration</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="small text-muted">
+            NASA FIRMS (Fire Information for Resource Management System) provides live and near-real-time active fire observations from MODIS (Terra/Aqua) and VIIRS (NOAA-20/21).
+          </p>
+          <div class="p-3 bg-surface rounded border border-secondary border-opacity-25 mb-3">
+            <div class="fw-semibold text-info mb-1">Current Status:</div>
+            <div id="modal-status-text" class="small text-muted">Checking API credentials...</div>
+          </div>
+          <div class="small text-muted">
+            <strong>How to configure:</strong>
+            <p class="mt-1">
+              Add your personal 32-character FIRMS MAP key to <code>.env</code> in the project root:
+            </p>
+            <pre class="bg-black p-2 rounded text-success small"><code>FIRMS_MAP_KEY=your_32_character_map_key</code></pre>
+            <p class="mb-0">
+              Obtain your free key at: <a href="https://firms.modaps.eosdis.nasa.gov/api/map_key/" target="_blank" class="text-info">https://firms.modaps.eosdis.nasa.gov/api/map_key/</a>
+            </p>
+          </div>
+        </div>
+        <div class="modal-footer border-secondary border-opacity-50">
+          <button type="button" class="btn btn-sm btn-pyro-outline" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="py-3 px-4 border-top border-secondary border-opacity-25 bg-surface text-center small text-muted">
+    <div class="container-fluid d-flex flex-wrap justify-content-between align-items-center">
+      <span><strong>PyroNexa 26</strong> &bull; 2026 NASA Space Apps Challenge &bull; Team PyroNexa 26</span>
+      <span>NASA FIRMS Data Attribution: NASA LANCE / EOSDIS Active Fire Products</span>
+    </div>
+  </footer>
+
+  <!-- Scripts: Bootstrap, Leaflet, Plotly, PyroNexa Modules -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/map.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
+
+</body>
+</html>
