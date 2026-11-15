@@ -47,7 +47,7 @@ PyroNexa delivers an end-to-end, scientifically defensible platform that bridges
 - **Backend**: Python 3.11+ / Python 3.14, Flask REST API, Pandas, NumPy, SciPy.
 - **Frontend**: Vanilla ES6 modules, HTML5, CSS3 with dark navy aerospace palette, Bootstrap 5.
 - **Visualization**: Leaflet.js (CartoDB dark basemap, OSM Standard, Esri Imagery), Plotly.js.
-- **Verification**: 60 automated Pytest unit and integration tests (100% pass rate).
+- **Verification**: 67 automated Pytest unit and integration tests (100% pass rate).
 - **Deployment**: Production WSGI callable (`run.py`), containerized `Dockerfile`, and `docker-compose.yml`.
 
 ---
