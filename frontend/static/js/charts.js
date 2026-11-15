@@ -33,6 +33,28 @@ const PyroCharts = {
     }, { responsive: true, displayModeBar: false });
   },
 
+  resizeAllCharts: function() {
+    const ids = [
+      'chart-sensor-pie',
+      'chart-daynight',
+      'chart-calendar-heatmap',
+      'chart-historical-timeline',
+      'chart-seasonal-baseline',
+      'chart-yearly-trends',
+      'chart-rfai-comparison',
+      'chart-frp-distribution',
+      'chart-anomalies-timeline'
+    ];
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && el.data && window.Plotly) {
+        try {
+          Plotly.Plots.resize(el);
+        } catch (e) {}
+      }
+    });
+  },
+
   renderAllCharts: function(overview, calendar, historical, comparison, anomalies) {
     if (overview) this.renderOverviewCharts(overview);
     if (calendar) this.renderCalendarHeatmap(calendar);
@@ -291,6 +313,26 @@ const PyroCharts = {
   },
 
   renderComparisonCharts: function(data) {
+    // Populate comparison KPI cards
+    const countRatioEl = document.getElementById('comp-count-ratio');
+    if (countRatioEl) {
+      countRatioEl.textContent = data.detection_ratio !== null ? `${data.detection_ratio.toFixed(2)}x` : 'N/A';
+    }
+    const areaRatioEl = document.getElementById('comp-area-ratio');
+    if (areaRatioEl) {
+      areaRatioEl.textContent = data.area_ratio !== null ? `${data.area_ratio.toFixed(2)}x` : 'N/A';
+    }
+    const clustersCountEl = document.getElementById('comp-clusters-count');
+    if (clustersCountEl) {
+      const uCl = (data.coincident_summary && data.coincident_summary.unique_clusters) || 0;
+      clustersCountEl.textContent = uCl.toLocaleString();
+    }
+    const clusterRatioEl = document.getElementById('comp-cluster-ratio');
+    if (clusterRatioEl) {
+      const vPerM = data.coincident_summary && data.coincident_summary.viirs_per_modis_cluster_ratio;
+      clusterRatioEl.textContent = vPerM !== null && vPerM !== undefined ? `${vPerM.toFixed(2)}x` : 'N/A';
+    }
+
     // 1. RFAI Harmonized Comparison Lines
     const rfaiEl = document.getElementById('chart-rfai-comparison');
     if (rfaiEl && data.rfai_analysis && data.rfai_analysis.monthly_rfai) {

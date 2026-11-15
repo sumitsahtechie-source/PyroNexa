@@ -4,18 +4,18 @@
 
 - **Test Framework**: `pytest 9.1.1`
 - **Environment**: Python 3.14.6 (macOS Darwin arm64)
-- **Total Tests Collected**: 62
-- **Total Passed**: 62
+- **Total Tests Collected**: 67
+- **Total Passed**: 67
 - **Total Failed**: 0
 - **Total Errors / Warnings**: 0
-- **Execution Time**: 3.58 seconds
+- **Execution Time**: ~6.95 seconds
 - **Pass Rate**: **100%**
 
 ---
 
 ## 2. Test Breakdown by Module
 
-### 2.1 Validators & Geospatial Utilities (`backend/tests/test_validators.py` - 25 tests)
+### 2.1 Validators & Geospatial Utilities (`backend/tests/test_validators.py` - 27 tests)
 - `test_validate_coordinates_valid`: Verified exact floating point coordinates. (PASSED)
 - `test_validate_coordinates_invalid_latitude`: Checked [-90.0, 90.0] bounds. (PASSED)
 - `test_validate_coordinates_invalid_longitude`: Checked [-180.0, 180.0] bounds. (PASSED)
@@ -44,14 +44,16 @@
 - `test_estimate_pixel_footprint_km2_viirs`: Verified VIIRS 3:1 aggregation constraint (<= 0.6 km²). (PASSED)
 - `test_is_within_bbox`: Checked spatial containment logic. (PASSED)
 
-### 2.2 Harmonization Service (`backend/tests/test_harmonization.py` - 7 tests)
+### 2.2 Harmonization Service (`backend/tests/test_harmonization.py` - 9 tests)
 - `test_standardize_raw_dataframe`: Verified column canonicalization, MODIS Bayesian % mapping, and VIIRS categorical conversion. (PASSED)
 - `test_standardize_empty_dataframe`: Checked graceful handling of empty inputs. (PASSED)
 - `test_daily_aggregation`: Verified daily grouped rollups. (PASSED)
 - `test_monthly_aggregation`: Verified monthly multi-year rollups. (PASSED)
 - `test_spatial_grid_summary`: Verified 0.25° grid aggregation. (PASSED)
 - `test_rfai_calculation`: Verified Relative Fire Activity Index computation. (PASSED)
-- `test_detect_coincident_clusters`: Identified overlapping MODIS and VIIRS detections within 2.0 km. (PASSED)
+- `test_detect_coincident_clusters`: Identified overlapping MODIS and VIIRS detections within 1.5 km and 60 min. (PASSED)
+- `test_detect_coincident_clusters_rejects_separated_time`: Verifies that detections occurring >60 min apart on the same date are rejected as coincident clusters. (PASSED)
+- `test_detect_coincident_clusters_rejects_separated_distance`: Verifies that detections separated by >1.5 km are rejected. (PASSED)
 
 ### 2.3 NASA FIRMS Service (`backend/tests/test_firms_service.py` - 7 tests)
 - `test_unconfigured_service`: Verified graceful transition to sample mode when key is absent. (PASSED)
@@ -71,7 +73,7 @@
 - `test_sensor_comparison`: Verified comparative ratios and FRP quantiles. (PASSED)
 - `test_anomaly_detection_identifies_extreme_event`: Verified detection of seasonal fire surge via Z-score and MAD. (PASSED)
 
-### 2.5 Flask Routes & REST Endpoints (`backend/tests/test_routes.py` - 14 tests)
+### 2.5 Flask Routes & REST Endpoints (`backend/tests/test_routes.py` - 17 tests)
 - `test_health_endpoint`: HTTP 200 and system health JSON. (PASSED)
 - `test_data_availability_endpoint`: HTTP 200 and sensor registry listing. (PASSED)
 - `test_index_view`: HTTP 200 and HTML single-page dashboard rendering. (PASSED)
@@ -86,3 +88,6 @@
 - `test_analytics_anomalies_endpoint`: HTTP 200 and anomaly classifications. (PASSED)
 - `test_export_csv_endpoint`: HTTP 200, `text/csv` header, and formatted CSV payload with NASA attribution. (PASSED)
 - `test_get_fires_with_frp_and_satellite_filters`: HTTP 200 with complex combined filters. (PASSED)
+- `test_get_fires_returns_coincident_fields`: HTTP 200 verifies `is_coincident` boolean and `cluster_id` string presence. (PASSED)
+- `test_sensor_comparison_returns_coincident_summary`: HTTP 200 verifies `coincident_summary` dictionary in comparison payload. (PASSED)
+- `test_configure_key_endpoint`: Verifies POST and DELETE operations for dynamic runtime NASA FIRMS key configuration. (PASSED)

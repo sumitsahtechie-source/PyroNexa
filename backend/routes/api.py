@@ -80,6 +80,9 @@ def _get_harmonized_dataset(params: dict):
         max_frp=max_frp
     )
 
+    # Detect multi-sensor simultaneous coincident clusters
+    filtered_df = harmonization_service.detect_coincident_clusters(filtered_df)
+
     metadata["satellite_filter"] = satellite
     metadata["daynight_filter"] = daynight
     metadata["min_frp"] = min_frp
@@ -136,6 +139,38 @@ def data_availability():
     })
 
 
+@api_bp.route("/config/key", methods=["POST", "DELETE"])
+def configure_key():
+    """Dynamically set, test, or clear the NASA FIRMS MAP key for the current session."""
+    if request.method == "DELETE":
+        firms_service.map_key = ""
+        cache_service.clear()
+        status = firms_service.check_api_status()
+        return jsonify({
+            "success": True,
+            "status": status,
+            "mode": status["mode"],
+            "operational": status["operational"],
+            "message": "FIRMS API key removed. Switched to scientific simulation mode."
+        })
+
+    data = request.get_json(silent=True) or {}
+    new_key = str(data.get("firms_map_key", "")).strip()
+
+    firms_service.map_key = new_key
+    # Clear cache so subsequent queries fetch fresh live data
+    cache_service.clear()
+    status = firms_service.check_api_status()
+
+    return jsonify({
+        "success": True,
+        "status": status,
+        "mode": status["mode"],
+        "operational": status["operational"],
+        "message": status["message"]
+    })
+
+
 @api_bp.route("/fires", methods=["GET"])
 def get_fires():
     """Retrieve active fire observation points with pagination and spatial metadata."""
@@ -168,7 +203,9 @@ def get_fires():
             "frp": round(float(r["frp"]), 1),
             "daynight": str(r["daynight"]),
             "footprint_area_km2": round(float(r["footprint_area_km2"]), 3),
-            "grid_cell_id": str(r["grid_cell_id"])
+            "grid_cell_id": str(r["grid_cell_id"]),
+            "is_coincident": bool(r.get("is_coincident", False)),
+            "cluster_id": str(r.get("cluster_id", "") or "")
         }
         for _, r in page_df.iterrows()
     ]
@@ -294,7 +331,8 @@ def export_csv():
         "latitude", "longitude", "brightness", "scan", "track",
         "acq_date", "acq_time", "satellite", "instrument",
         "confidence_raw", "confidence_cat", "confidence_pct",
-        "bright_t31", "frp", "daynight", "footprint_area_km2", "grid_cell_id"
+        "bright_t31", "frp", "daynight", "footprint_area_km2", "grid_cell_id",
+        "is_coincident", "cluster_id"
     ]
     available_cols = [c for c in export_cols if c in df.columns]
     export_df = df[available_cols]

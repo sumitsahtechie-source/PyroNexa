@@ -12,11 +12,11 @@
 - **Test Framework**: `pytest 9.1.1`
 - **Execution Engine**: Python 3.14.6 (`darwin` arm64)
 - **Plugin Stack**: `anyio 4.15.0`, `pluggy 1.6.0`
-- **Total Tests Collected**: 62
-- **Total Tests Passed**: **62**
+- **Total Tests Collected**: 67
+- **Total Tests Passed**: **67**
 - **Total Tests Failed**: **0**
 - **Total Errors / Skipped**: **0**
-- **Execution Duration**: 3.58 seconds
+- **Execution Duration**: 6.95 seconds
 - **Pass Rate**: **100.0%**
 
 ```text
@@ -25,22 +25,22 @@ platform darwin -- Python 3.14.6, pytest-9.1.1, pluggy-1.6.0
 cachedir: .pytest_cache
 rootdir: /Users/macbookpro/Desktop/PyroNexa
 plugins: anyio-4.15.0
-collected 62 items
+collected 67 items
 
-backend/tests/test_analytics.py ......................... [ 11%]
-backend/tests/test_firms_service.py ..................... [ 22%]
-backend/tests/test_harmonization.py ..................... [ 33%]
-backend/tests/test_routes.py ............................ [ 56%]
-backend/tests/test_validators.py ........................ [100%]
+backend/tests/test_analytics.py .......                                  [ 10%]
+backend/tests/test_firms_service.py .......                              [ 20%]
+backend/tests/test_harmonization.py .........                            [ 34%]
+backend/tests/test_routes.py .................                           [ 59%]
+backend/tests/test_validators.py ...........................             [100%]
 
-============================== 62 passed in 3.58s ==============================
+============================== 67 passed in 6.95s ==============================
 ```
 
 ---
 
 ## 2. Test Breakdown by Architectural Domain
 
-### 2.1 Validators & Geospatial Utilities (`backend/tests/test_validators.py` — 25 Tests)
+### 2.1 Validators & Geospatial Utilities (`backend/tests/test_validators.py` — 27 Tests)
 | Test Identifier | Tested Boundary / Specification | Result |
 |---|---|---|
 | `test_validate_coordinates_valid` | Valid geodetic coordinates within $[-90, 90]$ and $[-180, 180]$ | **PASSED** |
@@ -71,7 +71,7 @@ backend/tests/test_validators.py ........................ [100%]
 | `test_estimate_pixel_footprint_km2_viirs` | VIIRS 3:1 aggregation constraint: 0.14 km² at nadir, $\le 0.60\text{ km}^2$ at edge | **PASSED** |
 | `test_is_within_bbox` | Spatial point containment check within geographic bounding box | **PASSED** |
 
-### 2.2 Harmonization Service (`backend/tests/test_harmonization.py` — 7 Tests)
+### 2.2 Harmonization Service (`backend/tests/test_harmonization.py` — 9 Tests)
 | Test Identifier | Tested Boundary / Specification | Result |
 |---|---|---|
 | `test_standardize_raw_dataframe` | Schema normalization, Bayesian % confidence to categorical mapping, FRP typing | **PASSED** |
@@ -80,7 +80,9 @@ backend/tests/test_validators.py ........................ [100%]
 | `test_monthly_aggregation` | Multi-year monthly rollups, sensor breakdown, and temporal aggregation | **PASSED** |
 | `test_spatial_grid_summary` | Spatial binning across 0.25° grid cells, density calculations, sensor share | **PASSED** |
 | `test_rfai_calculation` | Relative Fire Activity Index against independent sensor baseline medians | **PASSED** |
-| `test_detect_coincident_clusters` | Spatial clustering of coincident MODIS and VIIRS detections within 2.0 km radius | **PASSED** |
+| `test_detect_coincident_clusters` | Spatial clustering of coincident MODIS and VIIRS detections within 1.5 km radius and 60 min window | **PASSED** |
+| `test_detect_coincident_clusters_rejects_separated_time` | Verifies that detections occurring >60 min apart on same date (day vs night) are not grouped | **PASSED** |
+| `test_detect_coincident_clusters_rejects_separated_distance` | Verifies that detections separated by >1.5 km are rejected from coincident clusters | **PASSED** |
 
 ### 2.3 NASA FIRMS Service (`backend/tests/test_firms_service.py` — 7 Tests)
 | Test Identifier | Tested Boundary / Specification | Result |
@@ -104,7 +106,7 @@ backend/tests/test_validators.py ........................ [100%]
 | `test_sensor_comparison` | Detection ratio computation, coincident clusters, FRP distribution quantiles | **PASSED** |
 | `test_anomaly_detection_identifies_extreme_event` | Dual Z-Score + MAD anomaly engine identifying verified fire season surge ($Z \ge 3.0$) | **PASSED** |
 
-### 2.5 Flask REST API Routes (`backend/tests/test_routes.py` — 14 Tests)
+### 2.5 Flask REST API Routes (`backend/tests/test_routes.py` — 17 Tests)
 | Test Identifier | Tested Route & Specification | Result |
 |---|---|---|
 | `test_health_endpoint` | `GET /api/health` returns HTTP 200, status `'healthy'`, cache status, and uptime | **PASSED** |
@@ -121,6 +123,9 @@ backend/tests/test_validators.py ........................ [100%]
 | `test_analytics_comparison_endpoint` | `GET /api/analytics/comparison` returns detection ratios and RFAI distributions | **PASSED** |
 | `test_analytics_anomalies_endpoint` | `GET /api/analytics/anomalies` returns Z-score and MAD seasonal anomaly scores | **PASSED** |
 | `test_export_csv_endpoint` | `GET /api/export/csv` returns HTTP 200 with `text/csv` and NASA attribution header | **PASSED** |
+| `test_get_fires_returns_coincident_fields` | `GET /api/fires` returns `is_coincident` boolean and `cluster_id` string | **PASSED** |
+| `test_sensor_comparison_returns_coincident_summary` | `GET /api/analytics/comparison` returns `coincident_summary` dictionary | **PASSED** |
+| `test_configure_key_endpoint` | `POST` and `DELETE /api/config/key` dynamically update runtime FIRMS key | **PASSED** |
 
 ---
 
@@ -129,6 +134,7 @@ backend/tests/test_validators.py ........................ [100%]
 1. **Simulation Mode & Live Mode Coverage**:
    - Both pathways in `FIRMSService` (`source_type="live_nasa_firms"` and `source_type="sample"`) are independently tested with network mocking and error simulation.
    - Network failure fallback automatically protects the user from uncaught runtime crashes.
+   - Runtime configuration endpoints (`POST /api/config/key`, `DELETE /api/config/key`) allow dynamic key testing without app restarts.
 2. **Extreme Geographical Coordinates**:
    - Tested International Date Line crossing, polar latitudes, and bounding boxes crossing $0^\circ$ Prime Meridian.
    - Inverted or zero-area coordinates are rejected before computation with HTTP 400 payloads.
@@ -140,6 +146,8 @@ backend/tests/test_validators.py ........................ [100%]
    - Anomaly engine incorporates both MAD robust scoring and baseline percentage thresholds ($> 300\%$ of median) to ensure extreme fire surges are reliably flagged even on sparse records.
 5. **Universal Browser Typographical Rendering**:
    - Replaced all unrendered KaTeX/LaTeX tokens in frontend templates with clean standard HTML entities (`Z &ge; 3.0`, `2.0 &le; Z &lt; 3.0`), ensuring error-free rendering across all modern and legacy browsers without third-party script dependencies.
+6. **Simultaneous Orbit & Spatial Coincidence**:
+   - Coincident multi-sensor detection requires both spatial distance $\le 1.5\text{ km}$ AND same-day acquisition time $\le 60\text{ minutes}$. Diurnal mismatch (e.g. 13:30 daytime vs 22:00 nighttime) is strictly rejected to preserve physical validity.
 
 ---
 
@@ -150,4 +158,4 @@ To independently reproduce the complete test execution:
 # In the project root directory:
 python3 -m pytest backend/tests -v
 ```
-All 62 tests will execute and pass in approximately 3.6 seconds.
+All 67 tests will execute and pass in approximately 6.9 seconds.

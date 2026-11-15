@@ -143,26 +143,48 @@ class HarmonizationService:
 
         # 5. Physical Radiometric Measurements
         # Brightness (Kelvin)
-        b_col = "brightness" if "brightness" in df.columns else ("bright_ti4" if "bright_ti4" in df.columns else "bright")
-        df["brightness"] = pd.to_numeric(df.get(b_col, 320.0), errors="coerce").fillna(320.0)
+        b_col = "brightness" if "brightness" in df.columns else ("bright_ti4" if "bright_ti4" in df.columns else ("bright" if "bright" in df.columns else None))
+        if b_col and b_col in df.columns:
+            df["brightness"] = pd.to_numeric(df[b_col], errors="coerce").fillna(320.0)
+        else:
+            df["brightness"] = 320.0
 
         # Brightness T31 / TI5
-        t31_col = "bright_t31" if "bright_t31" in df.columns else "bright_ti5"
-        df["bright_t31"] = pd.to_numeric(df.get(t31_col, np.nan), errors="coerce")
+        t31_col = "bright_t31" if "bright_t31" in df.columns else ("bright_ti5" if "bright_ti5" in df.columns else None)
+        if t31_col and t31_col in df.columns:
+            df["bright_t31"] = pd.to_numeric(df[t31_col], errors="coerce")
+        else:
+            df["bright_t31"] = np.nan
 
         # FRP (Fire Radiative Power, MW)
-        df["frp"] = pd.to_numeric(df.get("frp", 15.0), errors="coerce").fillna(10.0)
+        if "frp" in df.columns:
+            df["frp"] = pd.to_numeric(df["frp"], errors="coerce").fillna(10.0)
+        else:
+            df["frp"] = 10.0
 
         # Day / Night
-        df["daynight"] = df.get("daynight", "D").astype(str).str.upper().str[:1]
-        df["daynight"] = df["daynight"].map({"D": "D", "N": "N"}).fillna("D")
+        if "daynight" in df.columns:
+            df["daynight"] = df["daynight"].astype(str).str.upper().str[:1]
+            df["daynight"] = df["daynight"].map({"D": "D", "N": "N"}).fillna("D")
+        else:
+            df["daynight"] = "D"
 
         # Version
-        df["version"] = df.get("version", "NRT").astype(str)
+        if "version" in df.columns:
+            df["version"] = df["version"].astype(str)
+        else:
+            df["version"] = "NRT"
 
         # Scan & Track
-        df["scan"] = pd.to_numeric(df.get("scan", 1.0), errors="coerce").fillna(1.0)
-        df["track"] = pd.to_numeric(df.get("track", 1.0), errors="coerce").fillna(1.0)
+        if "scan" in df.columns:
+            df["scan"] = pd.to_numeric(df["scan"], errors="coerce").fillna(1.0)
+        else:
+            df["scan"] = 1.0
+
+        if "track" in df.columns:
+            df["track"] = pd.to_numeric(df["track"], errors="coerce").fillna(1.0)
+        else:
+            df["track"] = 1.0
 
         # 6. Spatial Calculations: Ground Footprint Area and Spatial Grid Bin
         footprint_areas = []
@@ -194,15 +216,28 @@ class HarmonizationService:
         """Identify multi-sensor spatial coincidences between MODIS and VIIRS overpasses.
         
         When MODIS and VIIRS observe the same active fire perimeter within an overpass window
-        (~13:30 local solar time), multiple VIIRS 375m pixels often cluster within a single
-        MODIS 1km footprint. Identifying these links enables empirical ratio estimation.
+        (~13:30 local solar time, typically within 15–50 minutes), multiple VIIRS 375m pixels
+        often cluster within a single MODIS 1km footprint. Identifying these simultaneous links
+        enables empirical sub-pixel resolution ratio estimation.
         """
         if df.empty or len(df) < 2:
-            return df
+            df_out = df.copy()
+            if "is_coincident" not in df_out.columns:
+                df_out["is_coincident"] = False
+            if "cluster_id" not in df_out.columns:
+                df_out["cluster_id"] = ""
+            return df_out
 
         df = df.copy()
         df["is_coincident"] = False
         df["cluster_id"] = ""
+
+        def _to_mins(t_val: Any) -> int:
+            try:
+                s = str(t_val).strip().zfill(4)[:4]
+                return int(s[:2]) * 60 + int(s[2:])
+            except Exception:
+                return 720
 
         # Only evaluate across same date
         dates = df["acq_date"].unique()
@@ -215,10 +250,18 @@ class HarmonizationService:
                 continue
 
             for m_idx, m_row in modis_sub.iterrows():
-                # Compare against VIIRS detections
+                m_mins = _to_mins(m_row.get("acq_time", "1200"))
+                m_lat, m_lon = m_row["latitude"], m_row["longitude"]
+
+                # Compare against VIIRS detections on same day
                 for v_idx, v_row in viirs_sub.iterrows():
+                    v_mins = _to_mins(v_row.get("acq_time", "1200"))
+                    time_diff = abs(m_mins - v_mins)
+                    if time_diff > time_window_mins:
+                        continue
+
                     dist = haversine_distance_km(
-                        m_row["latitude"], m_row["longitude"],
+                        m_lat, m_lon,
                         v_row["latitude"], v_row["longitude"]
                     )
                     if dist <= dist_threshold_km:

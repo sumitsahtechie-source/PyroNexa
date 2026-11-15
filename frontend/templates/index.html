@@ -486,6 +486,38 @@
         </div>
       </div>
 
+      <!-- Empirical Comparison KPI Cards -->
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+          <div class="pyro-card h-100 text-center py-3">
+            <div class="kpi-title">Detection Count Ratio</div>
+            <div id="comp-count-ratio" class="kpi-value text-warning fs-4">0.0x</div>
+            <div class="kpi-sub">VIIRS pixels per MODIS pixel</div>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="pyro-card h-100 text-center py-3">
+            <div class="kpi-title">Footprint Area Ratio</div>
+            <div id="comp-area-ratio" class="kpi-value text-info fs-4">0.0x</div>
+            <div class="kpi-sub">VIIRS km² per MODIS km²</div>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="pyro-card h-100 text-center py-3">
+            <div class="kpi-title">Coincident Clusters</div>
+            <div id="comp-clusters-count" class="kpi-value text-light fs-4">0</div>
+            <div class="kpi-sub">Simultaneous &le;60 min &le;1.5km</div>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="pyro-card h-100 text-center py-3">
+            <div class="kpi-title">Sub-Pixel Multiplier</div>
+            <div id="comp-cluster-ratio" class="kpi-value text-danger fs-4">0.0x</div>
+            <div class="kpi-sub">VIIRS resolution on same fires</div>
+          </div>
+        </div>
+      </div>
+
       <!-- Comparison Visualizations -->
       <div class="row g-3">
         <div class="col-12 col-lg-6">
@@ -610,9 +642,14 @@
             <span class="fs-5 fw-bold text-white">📋 Satellite Hotspot Data Explorer</span>
             <div id="table-records-count" class="small text-muted">Showing 0 matching records</div>
           </div>
-          <div class="d-flex gap-2">
-            <input type="text" id="table-search-input" class="form-control filter-input" placeholder="🔍 Search records..." style="width: 240px;">
-            <button class="btn btn-sm btn-pyro-primary" onclick="PyroNexa.triggerCsvExport()">📥 Export CSV</button>
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <select id="table-page-size" class="form-select filter-select" style="width: 110px;" aria-label="Records per page">
+              <option value="25" selected>25 / page</option>
+              <option value="50">50 / page</option>
+              <option value="100">100 / page</option>
+            </select>
+            <input type="text" id="table-search-input" class="form-control filter-input" placeholder="🔍 Search records..." style="width: 220px;" aria-label="Search records">
+            <button class="btn btn-sm btn-pyro-primary" onclick="PyroNexa.triggerCsvExport()" aria-label="Export CSV">📥 Export CSV</button>
           </div>
         </div>
 
@@ -629,12 +666,13 @@
                 <th onclick="PyroExplorer.setSort('confidence_cat')" style="cursor: pointer;">Confidence &#8693;</th>
                 <th onclick="PyroExplorer.setSort('frp')" style="cursor: pointer;">FRP (MW) &#8693;</th>
                 <th>Area (km²)</th>
+                <th>Coincident</th>
                 <th>Grid Cell</th>
               </tr>
             </thead>
             <tbody id="table-fires-body">
               <tr>
-                <td colspan="10" class="text-center py-4 text-muted">Loading satellite active fire records...</td>
+                <td colspan="11" class="text-center py-4 text-muted">Loading satellite active fire records...</td>
               </tr>
             </tbody>
           </table>
@@ -785,21 +823,33 @@
         </div>
         <div class="modal-body">
           <p class="small text-muted">
-            NASA FIRMS (Fire Information for Resource Management System) provides live and near-real-time active fire observations from MODIS (Terra/Aqua) and VIIRS (NOAA-20/21).
+            NASA FIRMS (Fire Information for Resource Management System) provides live and near-real-time active fire observations from MODIS (Terra/Aqua) and VIIRS (NOAA-20/21). You can paste your free MAP key below to connect live for your session.
           </p>
           <div class="p-3 bg-surface rounded border border-secondary border-opacity-25 mb-3">
-            <div class="fw-semibold text-info mb-1">Current Status:</div>
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="fw-semibold text-info">Current Mode:</span>
+              <span id="modal-status-badge" class="badge bg-warning bg-opacity-25 text-warning">Checking...</span>
+            </div>
             <div id="modal-status-text" class="small text-muted">Checking API credentials...</div>
           </div>
-          <div class="small text-muted">
-            <strong>How to configure:</strong>
-            <p class="mt-1">
-              Add your personal 32-character FIRMS MAP key to <code>.env</code> in the project root:
-            </p>
-            <pre class="bg-black p-2 rounded text-success small"><code>FIRMS_MAP_KEY=your_32_character_map_key</code></pre>
-            <p class="mb-0">
-              Obtain your free key at: <a href="https://firms.modaps.eosdis.nasa.gov/api/map_key/" target="_blank" class="text-info">https://firms.modaps.eosdis.nasa.gov/api/map_key/</a>
-            </p>
+
+          <!-- Live Key Testing & Input Form -->
+          <div class="mb-3">
+            <label for="modal-key-input" class="filter-label mb-1">Update NASA FIRMS MAP Key</label>
+            <div class="input-group">
+              <input type="text" id="modal-key-input" class="form-control filter-input font-monospace" placeholder="Paste 32-character FIRMS MAP Key..." aria-label="NASA FIRMS MAP Key">
+              <button id="btn-save-key" class="btn btn-pyro-primary" type="button">Connect & Test</button>
+            </div>
+            <div id="modal-key-feedback" class="small mt-2" style="display:none;"></div>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center pt-2 border-top border-secondary border-opacity-25">
+            <button id="btn-revert-key" class="btn btn-sm btn-pyro-outline text-warning" type="button">
+              &#8635; Revert to Simulation Mode
+            </button>
+            <a href="https://firms.modaps.eosdis.nasa.gov/api/map_key/" target="_blank" class="small text-info text-decoration-none">
+              Get Free NASA Key &rarr;
+            </a>
           </div>
         </div>
         <div class="modal-footer border-secondary border-opacity-50">

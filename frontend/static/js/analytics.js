@@ -12,8 +12,21 @@ const PyroExplorer = {
   sortCol: 'acq_date',
   sortAsc: false,
 
+  pageSizeBound: false,
+
   updateData: function(fires, pagination) {
     this.allFires = fires || [];
+    if (!this.pageSizeBound) {
+      const sizeSelect = document.getElementById('table-page-size');
+      if (sizeSelect) {
+        sizeSelect.addEventListener('change', (e) => {
+          this.pageSize = parseInt(e.target.value, 10) || 25;
+          this.currentPage = 1;
+          this.renderTable();
+        });
+        this.pageSizeBound = true;
+      }
+    }
     this.applyFilterAndSort();
     this.renderAnomalyTable();
   },
@@ -86,7 +99,7 @@ const PyroExplorer = {
     if (pageData.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="10" class="text-center py-4 text-muted">
+          <td colspan="11" class="text-center py-4 text-muted">
             <em>No fire observations match current filter criteria.</em>
           </td>
         </tr>
@@ -101,6 +114,10 @@ const PyroExplorer = {
       const confBadge = pt.confidence_cat === 'high' 
         ? 'badge-normal' 
         : (pt.confidence_cat === 'nominal' ? 'badge-elevated' : 'badge bg-secondary bg-opacity-25 text-muted');
+      
+      const coincidentBadge = pt.is_coincident 
+        ? `<span class="badge bg-info bg-opacity-25 text-info" title="Cluster ${pt.cluster_id}">&#10003; Coincident</span>` 
+        : `<span class="text-muted small">&mdash;</span>`;
 
       return `
         <tr onclick="PyroExplorer.showDetails(${startIdx + idx})" style="cursor: pointer;" title="Click to view full hotspot details">
@@ -113,6 +130,7 @@ const PyroExplorer = {
           <td><span class="badge ${confBadge}">${pt.confidence_cat}</span> <small class="text-muted">(${pt.confidence_pct}%)</small></td>
           <td><strong class="text-danger">${pt.frp.toFixed(1)}</strong></td>
           <td>${pt.footprint_area_km2.toFixed(3)}</td>
+          <td>${coincidentBadge}</td>
           <td><small class="text-dim">${pt.grid_cell_id}</small></td>
         </tr>
       `;
@@ -177,6 +195,13 @@ const PyroExplorer = {
         <div class="col-12 border-top border-secondary border-opacity-25 pt-2">
           <div class="text-dim small">Thermal Brightness: <strong class="text-white">${pt.brightness.toFixed(1)} K</strong></div>
         </div>
+        ${pt.is_coincident ? `
+        <div class="col-12 mt-1">
+          <div class="p-2 bg-info bg-opacity-25 rounded border border-info border-opacity-50 text-info small">
+            <strong>&#10003; Coincident Multi-Sensor Observation:</strong> This fire was simultaneously observed within 60 minutes by both MODIS (1km) and VIIRS (375m) in cluster <code>${pt.cluster_id}</code>.
+          </div>
+        </div>
+        ` : ''}
       </div>
     `;
     const modalEl = document.getElementById('recordDetailsModal');
@@ -191,7 +216,10 @@ const PyroExplorer = {
     const tbody = document.getElementById('anomaly-table-body');
     if (!tbody || !data || !data.monthly_anomalies) return;
 
-    tbody.innerHTML = data.monthly_anomalies.map(a => `
+    // Show most recent months on top
+    const anomaliesReversed = [...data.monthly_anomalies].reverse();
+
+    tbody.innerHTML = anomaliesReversed.map(a => `
       <tr>
         <td><strong>${a.year_month}</strong></td>
         <td>${a.count.toLocaleString()}</td>

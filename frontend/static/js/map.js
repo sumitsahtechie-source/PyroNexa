@@ -70,12 +70,14 @@ const PyroMap = {
     this.modisLayer = L.layerGroup().addTo(this.map);
     this.viirsLayer = L.layerGroup().addTo(this.map);
     this.highFrpLayer = L.layerGroup();
+    this.coincidentLayer = L.layerGroup();
     this.aoiPolygonLayer = L.layerGroup().addTo(this.map);
 
     const overlays = {
       '<span class="badge-modis px-2 py-0.5 rounded">MODIS (Terra/Aqua 1km)</span>': this.modisLayer,
       '<span class="badge-viirs px-2 py-0.5 rounded">VIIRS (NOAA-20/21 375m)</span>': this.viirsLayer,
       '<span class="badge bg-danger bg-opacity-25 text-danger px-2 py-0.5 rounded">Intense Fires (FRP &ge; 50 MW)</span>': this.highFrpLayer,
+      '<span class="badge bg-info bg-opacity-25 text-info px-2 py-0.5 rounded">&#10003; Coincident Clusters (&le;60min)</span>': this.coincidentLayer,
       '<span class="text-info small px-1">Selected AOI Boundary</span>': this.aoiPolygonLayer
     };
 
@@ -150,6 +152,7 @@ const PyroMap = {
     this.modisLayer.clearLayers();
     this.viirsLayer.clearLayers();
     this.highFrpLayer.clearLayers();
+    if (this.coincidentLayer) this.coincidentLayer.clearLayers();
 
     const emptyOverlay = document.getElementById('map-empty-overlay');
     if (emptyOverlay) {
@@ -195,6 +198,11 @@ const PyroMap = {
           <div style="margin-bottom: 3px;"><strong>FRP:</strong> <span style="font-weight: 700; color: #dc2626;">${pt.frp.toFixed(1)} MW</span></div>
           <div style="margin-bottom: 3px;"><strong>Footprint Area:</strong> ${pt.footprint_area_km2.toFixed(3)} km²</div>
           <div style="margin-bottom: 3px;"><strong>Brightness Temp:</strong> ${pt.brightness.toFixed(1)} K</div>
+          ${pt.is_coincident ? `
+          <div style="margin-top: 4px; padding: 3px 6px; border-radius: 4px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); font-size: 0.72rem; color: #0284c7;">
+            <strong>&#10003; Simultaneous Multi-Sensor Cluster:</strong> ${pt.cluster_id}
+          </div>
+          ` : ''}
           <div style="font-size: 0.72rem; color: #64748b; margin-top: 4px; border-top: 1px dashed #e2e8f0; padding-top: 4px;">
             Grid Cell: ${pt.grid_cell_id} | Overpass: ${pt.daynight === 'D' ? 'Day (Solar Peak)' : 'Night'}
           </div>
@@ -210,6 +218,18 @@ const PyroMap = {
 
       if (pt.frp >= 50.0) {
         this.highFrpLayer.addLayer(marker);
+      }
+
+      if (pt.is_coincident && this.coincidentLayer) {
+        const ring = L.circleMarker([pt.latitude, pt.longitude], {
+          radius: radius + 4,
+          color: '#38bdf8',
+          weight: 2,
+          fillOpacity: 0.0,
+          dashArray: '3, 3'
+        });
+        ring.bindTooltip(`Simultaneous Cluster: ${pt.cluster_id}`, { sticky: true });
+        this.coincidentLayer.addLayer(ring);
       }
     });
   },

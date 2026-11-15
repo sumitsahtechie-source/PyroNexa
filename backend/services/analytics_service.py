@@ -407,6 +407,28 @@ class AnalyticsService:
             }
         }
 
+        # Coincident multi-sensor cluster analysis
+        coincident_summary = {
+            "total_coincident_points": 0,
+            "modis_coincident_points": 0,
+            "viirs_coincident_points": 0,
+            "unique_clusters": 0,
+            "viirs_per_modis_cluster_ratio": None
+        }
+        if "is_coincident" in df.columns:
+            co_df = df[df["is_coincident"] == True]
+            if not co_df.empty:
+                m_co = int(len(co_df[co_df["instrument"] == "MODIS"]))
+                v_co = int(len(co_df[co_df["instrument"] == "VIIRS"]))
+                u_cl = int(co_df["cluster_id"].nunique())
+                coincident_summary = {
+                    "total_coincident_points": int(len(co_df)),
+                    "modis_coincident_points": m_co,
+                    "viirs_coincident_points": v_co,
+                    "unique_clusters": u_cl,
+                    "viirs_per_modis_cluster_ratio": round(v_co / max(1, m_co), 2) if m_co > 0 else None
+                }
+
         scientific_notes = [
             {
                 "topic": "Spatial Resolution & Pixel Growth",
@@ -431,6 +453,7 @@ class AnalyticsService:
             "detection_ratio": rfai_data["overall_ratio"],
             "area_ratio": rfai_data["area_ratio"],
             "rfai_analysis": rfai_data,
+            "coincident_summary": coincident_summary,
             "frp_quantiles": frp_quantiles,
             "overpass_comparison": overpass_comparison,
             "scientific_comparison_notes": scientific_notes

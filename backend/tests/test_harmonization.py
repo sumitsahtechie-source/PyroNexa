@@ -112,9 +112,38 @@ class TestHarmonizationService:
     def test_detect_coincident_clusters(self, sample_raw_df):
         service = HarmonizationService()
         std_df = service.standardize_raw_dataframe(sample_raw_df)
-        clustered = service.detect_coincident_clusters(std_df, dist_threshold_km=2.0)
+        clustered = service.detect_coincident_clusters(std_df, dist_threshold_km=2.0, time_window_mins=60)
 
         assert "is_coincident" in clustered.columns
-        # Points on 2024-08-10 at lat 37.5, lon -119.5 and lat 37.51, lon -119.51 are ~1.4 km apart
+        # Points on 2024-08-10 at lat 37.5, lon -119.5 and lat 37.51, lon -119.51 are ~1.4 km apart & 5 mins apart
         aug10 = clustered[clustered["acq_date"] == "2024-08-10"]
         assert aug10["is_coincident"].any()
+        assert aug10["cluster_id"].iloc[0].startswith("cluster_2024-08-10_")
+
+    def test_detect_coincident_clusters_rejects_separated_time(self):
+        service = HarmonizationService()
+        df = pd.DataFrame({
+            "LATITUDE": [37.5, 37.5],
+            "LONGITUDE": [-119.5, -119.5],
+            "ACQ_DATE": ["2024-08-10", "2024-08-10"],
+            "ACQ_TIME": [1330, 2200],  # 8.5 hours apart (day vs night)
+            "INSTRUMENT": ["MODIS", "VIIRS"],
+            "SATELLITE": ["Aqua", "NOAA-20"]
+        })
+        std_df = service.standardize_raw_dataframe(df)
+        clustered = service.detect_coincident_clusters(std_df, dist_threshold_km=2.0, time_window_mins=60)
+        assert not clustered["is_coincident"].any()
+
+    def test_detect_coincident_clusters_rejects_separated_distance(self):
+        service = HarmonizationService()
+        df = pd.DataFrame({
+            "LATITUDE": [37.5, 38.5],  # ~111 km apart
+            "LONGITUDE": [-119.5, -119.5],
+            "ACQ_DATE": ["2024-08-10", "2024-08-10"],
+            "ACQ_TIME": [1330, 1335],  # 5 mins apart
+            "INSTRUMENT": ["MODIS", "VIIRS"],
+            "SATELLITE": ["Aqua", "NOAA-20"]
+        })
+        std_df = service.standardize_raw_dataframe(df)
+        clustered = service.detect_coincident_clusters(std_df, dist_threshold_km=2.0, time_window_mins=60)
+        assert not clustered["is_coincident"].any()

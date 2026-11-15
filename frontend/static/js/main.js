@@ -143,6 +143,90 @@ const PyroNexa = {
       });
     }
 
+    // Modal API key configuration
+    const saveKeyBtn = document.getElementById('btn-save-key');
+    const revertKeyBtn = document.getElementById('btn-revert-key');
+    const keyInput = document.getElementById('modal-key-input');
+    const keyFeedback = document.getElementById('modal-key-feedback');
+
+    if (saveKeyBtn && keyInput) {
+      saveKeyBtn.addEventListener('click', () => {
+        const keyVal = keyInput.value.trim();
+        if (!keyVal) {
+          if (keyFeedback) {
+            keyFeedback.style.display = 'block';
+            keyFeedback.className = 'small mt-2 alert alert-warning py-1 px-2';
+            keyFeedback.textContent = 'Please enter a valid 32-character NASA FIRMS MAP Key.';
+          }
+          return;
+        }
+
+        saveKeyBtn.disabled = true;
+        saveKeyBtn.textContent = 'Testing...';
+
+        fetch('/api/config/key', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ firms_map_key: keyVal })
+        })
+        .then(r => r.json())
+        .then(res => {
+          this.state.firmsStatus = res.status;
+          this.updateApiStatusUI(res.status);
+          if (keyFeedback) {
+            keyFeedback.style.display = 'block';
+            if (res.status.operational && res.status.configured) {
+              keyFeedback.className = 'small mt-2 alert alert-success py-1 px-2';
+              keyFeedback.innerHTML = `<strong>Connected!</strong> NASA FIRMS key verified successfully.`;
+            } else {
+              keyFeedback.className = 'small mt-2 alert alert-danger py-1 px-2';
+              keyFeedback.innerHTML = `<strong>Verification Issue:</strong> ${res.status.message || 'Key was rejected by NASA.'}`;
+            }
+          }
+          this.refreshAllData();
+        })
+        .catch(err => {
+          if (keyFeedback) {
+            keyFeedback.style.display = 'block';
+            keyFeedback.className = 'small mt-2 alert alert-danger py-1 px-2';
+            keyFeedback.textContent = 'Failed to test key: ' + err.message;
+          }
+        })
+        .finally(() => {
+          saveKeyBtn.disabled = false;
+          saveKeyBtn.textContent = 'Connect & Test';
+        });
+      });
+    }
+
+    if (revertKeyBtn) {
+      revertKeyBtn.addEventListener('click', () => {
+        if (keyInput) keyInput.value = '';
+        fetch('/api/config/key', { method: 'DELETE' })
+          .then(r => r.json())
+          .then(res => {
+            this.state.firmsStatus = res.status;
+            this.updateApiStatusUI(res.status);
+            if (keyFeedback) {
+              keyFeedback.style.display = 'block';
+              keyFeedback.className = 'small mt-2 alert alert-info py-1 px-2';
+              keyFeedback.textContent = 'Switched to Simulation Mode with verified sample data.';
+            }
+            this.refreshAllData();
+          });
+      });
+    }
+
+    // Window resize event for charts and maps
+    window.addEventListener('resize', () => {
+      if (window.PyroCharts && window.PyroCharts.resizeAllCharts) {
+        window.PyroCharts.resizeAllCharts();
+      }
+      if (window.PyroMap && window.PyroMap.map) {
+        window.PyroMap.map.invalidateSize();
+      }
+    });
+
     // Table search input
     const searchInput = document.getElementById('table-search-input');
     if (searchInput) {
@@ -174,14 +258,15 @@ const PyroNexa = {
       }
     });
 
-    // Trigger map invalidation if opening map section
-    if (sectionId === 'map') {
-      setTimeout(() => {
-        if (window.PyroMap && window.PyroMap.map) {
-          window.PyroMap.map.invalidateSize();
-        }
-      }, 150);
-    }
+    // Trigger chart reflow and map invalidation
+    setTimeout(() => {
+      if (window.PyroCharts && window.PyroCharts.resizeAllCharts) {
+        window.PyroCharts.resizeAllCharts();
+      }
+      if (sectionId === 'map' && window.PyroMap && window.PyroMap.map) {
+        window.PyroMap.map.invalidateSize();
+      }
+    }, 120);
   },
 
   buildQueryParams: function() {
@@ -215,6 +300,18 @@ const PyroNexa = {
     const pill = document.getElementById('api-status-pill');
     const label = document.getElementById('api-status-label');
     const modalText = document.getElementById('modal-status-text');
+
+    const modalBadge = document.getElementById('modal-status-badge');
+
+    if (modalBadge) {
+      if (status.operational && status.configured) {
+        modalBadge.className = 'badge bg-success bg-opacity-25 text-success';
+        modalBadge.textContent = 'NASA FIRMS LIVE';
+      } else {
+        modalBadge.className = 'badge bg-warning bg-opacity-25 text-warning';
+        modalBadge.textContent = 'SIMULATION MODE';
+      }
+    }
 
     if (modalText) {
       if (status.operational && status.configured) {

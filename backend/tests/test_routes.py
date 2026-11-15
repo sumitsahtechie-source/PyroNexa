@@ -138,3 +138,46 @@ class TestFlaskRoutes:
             assert pt["daynight"] == "D"
             assert pt["frp"] >= 10.0
             assert pt["frp"] <= 200.0
+
+    def test_get_fires_returns_coincident_fields(self, client):
+        resp = client.get("/api/fires?region=california&page=1&per_page=10")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["success"] is True
+        for pt in data["data"]:
+            assert "is_coincident" in pt
+            assert "cluster_id" in pt
+
+    def test_sensor_comparison_returns_coincident_summary(self, client):
+        resp = client.get("/api/analytics/comparison?region=california")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["success"] is True
+        assert "coincident_summary" in data["data"]
+        cs = data["data"]["coincident_summary"]
+        assert "unique_clusters" in cs
+        assert "total_coincident_points" in cs
+
+    def test_configure_key_endpoint(self, client):
+        from unittest.mock import patch, MagicMock
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.text = "latitude,longitude,brightness,scan,track,acq_date,acq_time,satellite,instrument,confidence,version,bright_ti5,frp,daynight\n37.5,-119.5,330.0,0.4,0.4,2024-08-10,1330,N20,VIIRS,n,2.0NRT,295.0,15.2,D"
+
+        # POST valid key
+        with patch("requests.get", return_value=mock_resp):
+            post_resp = client.post("/api/config/key", json={"firms_map_key": "12345678901234567890123456789012"})
+            assert post_resp.status_code == 200
+            data = post_resp.get_json()
+            assert data["success"] is True
+            assert data["status"]["operational"] is True
+            assert data["mode"] == "live"
+
+        # DELETE key to revert to sample mode
+        del_resp = client.delete("/api/config/key")
+        assert del_resp.status_code == 200
+        del_data = del_resp.get_json()
+        assert del_data["success"] is True
+        assert del_data["mode"] == "sample"
+        assert del_data["status"]["configured"] is False

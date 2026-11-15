@@ -3,7 +3,7 @@
 [![NASA Space Apps Challenge 2026](https://img.shields.io/badge/NASA%20Space%20Apps-2026%20Challenge-orange.svg)](https://www.spaceappschallenge.org/2026/challenges/modis-and-viirs-hot-spots/)
 [![Python](https://img.shields.io/badge/Python-3.11%2B%20%7C%203.14-blue.svg)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Backend-Flask%203.1-black.svg)](https://palletsprojects.com/p/flask/)
-[![Tests](https://img.shields.io/badge/Tests-62%20Passed%20(100%25)-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-67%20Passed%20(100%25)-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 > **Team**: PyroNexa 26  
@@ -22,6 +22,7 @@ PyroNexa delivers a transparent harmonization framework featuring:
 - **Canonical Schema Standardization** across all NASA FIRMS feeds.
 - **Ground Footprint Area (FPA)** normalization accounting for pixel expansion.
 - **0.25° Discrete Spatial Grid Binning** to track physical burning area.
+- **Simultaneous Multi-Sensor Coincident Clustering** ($\le 1.5\text{ km}$ distance and $\le 60\text{ min}$ orbital window).
 - **Dimensionless Relative Fire Activity Index (RFAI)** comparing observations against independent multi-year historical seasonal medians.
 - **Calendar-Month Stratified Anomaly Engine** (Parametric Z-Score + Robust Median Absolute Deviation / MAD).
 
@@ -29,14 +30,14 @@ PyroNexa delivers a transparent harmonization framework featuring:
 
 ## 🚀 Key Features & Dashboard Sections
 
-1. **Overview**: Total detections, distinct MODIS vs VIIRS counts, empirical detection ratio, total Fire Radiative Power (MW), ground footprint area (km²), satellite provenance, AOI boundary extent, and NASA API connectivity status.
-2. **Live Fire Map**: Interactive Leaflet map with free OpenStreetMap default tiles, Carto Dark & Esri satellite options, sensor-specific color coding (Blue: MODIS 1km; Orange: VIIRS 375m), FRP-scaled radius markers, and rich NASA telemetry popups.
+1. **Overview**: Total detections, distinct MODIS vs VIIRS counts, empirical detection ratio, total Fire Radiative Power (MW), ground footprint area (km²), satellite provenance, AOI boundary extent, and live NASA API connectivity status.
+2. **Live Fire Map**: Interactive Leaflet map with free OpenStreetMap default tiles, Carto Dark & Esri satellite options, sensor-specific color coding (Blue: MODIS 1km; Orange: VIIRS 375m), Coincident Clusters Layer (Cyan halo rings for simultaneous $\le 60\text{ min}$ multi-sensor overpasses), FRP-scaled radius markers, and rich NASA telemetry popups.
 3. **Burning Activity Calendar**: Year-versus-Month active fire density heatmap matrix with interactive hover tooltips exposing monthly hotspot volume and cumulative radiative power.
 4. **Historical Analysis**: Multi-year monthly timeline, 12-month climatological median curve with 25th–75th percentile envelope, and annual stacked volume trends.
-5. **Sensor Comparison**: Side-by-side technical specs, empirical detection ratio ($VIIRS/MODIS$), pixel ground area ratio, FRP distribution quantiles, and diurnal overpass proportions.
+5. **Sensor Comparison**: Side-by-side technical specs, 4 comparison KPI cards (Detection Ratio, Footprint Ratio, Coincident Clusters Count, and Sub-Pixel Multiplier), FRP distribution quantiles, and diurnal overpass proportions.
 6. **Statistical Anomaly Detection**: Transparent seasonal Z-score and MAD anomaly scoring categorized into Normal, Elevated, High Anomaly, and Extreme Fire Activity.
-7. **Data Explorer**: Searchable, multi-column sortable table with client-side pagination, record detail modal, and one-click filtered CSV export with NASA attribution headers.
-8. **About & Science**: In-depth scientific documentation, NASA FIRMS reference, methodology derivation, and API key setup modal.
+7. **Data Explorer**: Searchable, multi-column sortable table with customizable page size (25, 50, 100 records), Coincident detection badge, record detail modal, and one-click filtered CSV export with NASA attribution headers.
+8. **About & Science**: In-depth scientific documentation, NASA FIRMS reference, methodology derivation, and dynamic runtime API key setup modal with live connection test and sample simulation fallback.
 
 ---
 
@@ -45,9 +46,9 @@ PyroNexa delivers a transparent harmonization framework featuring:
 - **Backend**: Python 3.11+ / Python 3.14, Flask, REST API
 - **Data Science & Geospatial**: Pandas, NumPy, SciPy
 - **Frontend**: HTML5, CSS3, JavaScript (Vanilla ES6 modules)
-- **Styling**: Bootstrap 5 + Custom Dark Navy Aerospace Theme
-- **Mapping & Visualizations**: Leaflet.js (OpenStreetMap, Carto Dark, Esri), Plotly.js
-- **Testing**: Pytest (62 automated tests, 100% pass rate), Flask Test Client
+- **Styling**: Bootstrap 5 + Custom Dark Navy Aerospace Theme with mobile/tablet responsive layout
+- **Mapping & Visualizations**: Leaflet.js (OpenStreetMap, Carto Dark, Esri), Plotly.js (with auto-resize on window resize and tab switch)
+- **Testing**: Pytest (67 automated tests, 100% pass rate), Flask Test Client
 - **Configuration & Caching**: python-dotenv, Two-tiered Memory/Disk Cache (SHA-256)
 
 ---
@@ -77,7 +78,7 @@ pip install -r requirements.txt
 
 # 4. (Optional) Configure NASA FIRMS API key
 cp .env.example .env
-# Edit .env and insert your free FIRMS_MAP_KEY
+# Edit .env and insert your free FIRMS_MAP_KEY (or set dynamically inside the app)
 
 # 5. Start the platform
 python3 run.py
@@ -85,7 +86,7 @@ python3 run.py
 Open **`http://127.0.0.1:5000`** in your browser.
 
 > [!NOTE]
-> If `FIRMS_MAP_KEY` is not provided, PyroNexa automatically runs in **Simulation Mode** using a verified multi-year scientific sample dataset (15,137 observations across 5 global biomes from 2021 to 2026).
+> If `FIRMS_MAP_KEY` is not provided, PyroNexa automatically runs in **Simulation Mode** using a verified multi-year scientific sample dataset (15,137 observations across 5 global biomes from 2021 to 2026). You can also configure and test your key at runtime via the in-app "Configure Key" modal.
 
 ---
 
@@ -94,7 +95,7 @@ Open **`http://127.0.0.1:5000`** in your browser.
 ```bash
 python3 -m pytest backend/tests -v
 ```
-All **62 unit and integration tests** execute in under 7 seconds with 100% pass rate.
+All **67 unit and integration tests** execute in ~6.9 seconds with a **100% pass rate**.
 
 ---
 
