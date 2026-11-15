@@ -43,6 +43,77 @@ body {
 }
 
 /* ==========================================================================
+   Accessible High-Contrast Overrides for Dark Aerospace Theme
+   ========================================================================== */
+.text-muted,
+.small.text-muted,
+p.text-muted,
+div.text-muted,
+span.text-muted,
+li.text-muted {
+  color: #cbd5e1 !important;
+}
+
+.text-dim {
+  color: #94a3b8 !important;
+}
+
+.text-secondary {
+  color: #cbd5e1 !important;
+}
+
+.form-text {
+  color: #cbd5e1 !important;
+}
+
+.border-secondary {
+  border-color: #334868 !important;
+}
+
+/* Modal dark theme & contrast */
+.modal-content {
+  background-color: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-main) !important;
+}
+
+.modal-content .text-muted {
+  color: #cbd5e1 !important;
+}
+
+.modal-header,
+.modal-footer {
+  border-color: var(--border-color) !important;
+}
+
+/* Footer high contrast */
+footer,
+footer.bg-surface,
+footer .text-muted,
+footer span {
+  color: #cbd5e1 !important;
+}
+
+/* Leaflet dark theme controls */
+.leaflet-control-layers {
+  background: rgba(15, 23, 42, 0.94) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid var(--border-color) !important;
+  color: #f8fafc !important;
+  border-radius: 8px !important;
+  padding: 0.65rem 0.85rem !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+}
+
+.leaflet-control-layers-base label,
+.leaflet-control-layers-overlays label {
+  color: #e2e8f0 !important;
+  font-size: 0.8rem !important;
+  cursor: pointer;
+  margin-bottom: 3px;
+}
+
+/* ==========================================================================
    Header & Navigation
    ========================================================================== */
 .pyronexa-navbar {
@@ -119,7 +190,7 @@ body {
 .filter-label {
   font-size: 0.72rem;
   font-weight: 600;
-  color: var(--text-dim);
+  color: #cbd5e1;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 0.25rem;
@@ -216,14 +287,15 @@ body {
 
 .kpi-sub {
   font-size: 0.78rem;
-  color: var(--text-dim);
+  color: #cbd5e1;
+  font-weight: 500;
   margin-top: 0.35rem;
 }
 
 /* Sensor Badge Colors */
 .badge-modis {
   background-color: rgba(59, 130, 246, 0.18);
-  color: #60a5fa;
+  color: #93c5fd;
   border: 1px solid rgba(59, 130, 246, 0.4);
 }
 
@@ -351,7 +423,7 @@ body {
    ========================================================================== */
 .badge-extreme {
   background-color: rgba(220, 38, 38, 0.2);
-  color: #f87171;
+  color: #fca5a5;
   border: 1px solid rgba(220, 38, 38, 0.5);
 }
 
@@ -386,7 +458,7 @@ body {
 
 .pyro-table th {
   background-color: var(--bg-surface);
-  color: var(--text-muted);
+  color: #e2e8f0;
   font-weight: 600;
   text-transform: uppercase;
   font-size: 0.72rem;
@@ -399,6 +471,7 @@ body {
 }
 
 .pyro-table td {
+  color: #f8fafc;
   padding: 0.65rem 0.85rem;
   border-bottom: 1px solid #1a2742;
   vertical-align: middle;

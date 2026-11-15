@@ -113,6 +113,7 @@ def health_check():
 
 
 @api_bp.route("/data-availability", methods=["GET"])
+@api_bp.route("/data_availability", methods=["GET"])
 def data_availability():
     """Return available sensors, preset regions, and FIRMS API status."""
     firms_status = firms_service.check_api_status()
@@ -342,6 +343,7 @@ def export_csv():
     # Add attribution header
     output.write(f"# PyroNexa 26 - Satellite Fire Intelligence Harmonized Export\n")
     output.write(f"# NASA FIRMS Attribution: {metadata['attribution']}\n")
+    output.write(f"# Data Source: {'Live NASA FIRMS API' if metadata.get('source_type') == 'live_nasa_firms' else 'Verified Multi-Year Scientific Sample (Simulation Mode)'}\n")
     now_utc = datetime.now(timezone.utc)
     output.write(f"# Export Date: {now_utc.isoformat()}\n")
     output.write(f"# Region Preset: {params.get('region', 'custom')}\n")

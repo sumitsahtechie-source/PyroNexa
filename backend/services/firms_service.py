@@ -28,6 +28,18 @@ class FIRMSService:
         self.base_url = Config.FIRMS_BASE_URL
         self.timeout = Config.FIRMS_REQUEST_TIMEOUT
 
+    def _sanitize_message(self, msg: str) -> str:
+        """Strip any API key or sensitive token from user-facing error messages."""
+        if not msg:
+            return ""
+        sanitized = str(msg)
+        if self.map_key and len(self.map_key) >= 8:
+            sanitized = sanitized.replace(self.map_key, "REDACTED_KEY")
+        # Also redact any standard 16-64 char tokens in URL paths
+        import re
+        sanitized = re.sub(r"/api/area/csv/[a-zA-Z0-9_-]{16,64}/", "/api/area/csv/REDACTED_KEY/", sanitized)
+        return sanitized
+
     @property
     def is_configured(self) -> bool:
         """Return True if a valid NASA FIRMS map key is configured."""
@@ -66,10 +78,10 @@ class FIRMSService:
                 status["message"] = "NASA FIRMS API key rejected (Invalid MAP_KEY or unauthorized)."
             else:
                 status["operational"] = False
-                status["message"] = f"NASA FIRMS API returned status {resp.status_code}: {resp.text[:120]}"
+                status["message"] = f"NASA FIRMS API returned status {resp.status_code}: {self._sanitize_message(resp.text[:120])}"
         except requests.RequestException as e:
             status["operational"] = False
-            status["message"] = f"Network connection to NASA FIRMS failed: {str(e)}"
+            status["message"] = f"Network connection to NASA FIRMS failed: {self._sanitize_message(str(e))}"
 
         return status
 
@@ -128,8 +140,9 @@ class FIRMSService:
             cache_service.set("firms_raw", cache_params, df.to_json())
             return df
         except requests.RequestException as e:
-            logger.error(f"FIRMS request failed: {e}")
-            raise RuntimeError(f"Failed to fetch data from NASA FIRMS API: {str(e)}")
+            sanitized_err = self._sanitize_message(str(e))
+            logger.error(f"FIRMS request failed: {sanitized_err}")
+            raise RuntimeError(f"Failed to fetch data from NASA FIRMS API: {sanitized_err}")
 
     def load_sample_dataset(self) -> pd.DataFrame:
         """Load local verified sample dataset."""
