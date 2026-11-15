@@ -29,9 +29,13 @@ class AnalyticsService:
         sensor: str = "ALL",
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
-        confidence: str = "all"
+        confidence: str = "all",
+        satellite: Optional[str] = None,
+        daynight: Optional[str] = None,
+        min_frp: Optional[float] = None,
+        max_frp: Optional[float] = None
     ) -> pd.DataFrame:
-        """Filter standardized DataFrame by geographic bounding box, sensor, date range, and confidence."""
+        """Filter standardized DataFrame by bbox, sensor, date, confidence, satellite, day/night, and FRP."""
         if df.empty:
             return df
 
@@ -48,7 +52,7 @@ class AnalyticsService:
             ]
 
         # Sensor filter
-        sensor_up = sensor.upper().strip()
+        sensor_up = (sensor or "ALL").upper().strip()
         if sensor_up == "MODIS":
             filtered = filtered[filtered["instrument"] == "MODIS"]
         elif sensor_up == "VIIRS":
@@ -61,6 +65,21 @@ class AnalyticsService:
                 (filtered["satellite"].str.upper() == spec.platform.upper())
             ]
 
+        # Specific satellite filter
+        if satellite and satellite.lower() != "all":
+            sat_clean = satellite.strip().lower()
+            filtered = filtered[filtered["satellite"].astype(str).str.lower() == sat_clean]
+
+        # Day/Night overpass filter
+        if daynight and daynight.upper() in ("D", "N"):
+            filtered = filtered[filtered["daynight"].astype(str).str.upper() == daynight.upper()]
+
+        # FRP Range filters
+        if min_frp is not None:
+            filtered = filtered[filtered["frp"] >= float(min_frp)]
+        if max_frp is not None:
+            filtered = filtered[filtered["frp"] <= float(max_frp)]
+
         # Date range filter
         if start_date:
             filtered = filtered[filtered["acq_date"] >= start_date]
@@ -68,7 +87,7 @@ class AnalyticsService:
             filtered = filtered[filtered["acq_date"] <= end_date]
 
         # Confidence filter
-        conf_low = confidence.lower().strip()
+        conf_low = (confidence or "all").lower().strip()
         if conf_low in ("low", "nominal", "high"):
             filtered = filtered[filtered["confidence_cat"] == conf_low]
 
@@ -80,14 +99,30 @@ class AnalyticsService:
         metadata: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Generate summary KPIs for the Overview dashboard."""
+        # Compute AOI Surface Area if bbox exists
+        bbox = metadata.get("bbox")
+        aoi_area_km2 = None
+        if bbox and len(bbox) == 4:
+            try:
+                min_lon, min_lat, max_lon, max_lat = bbox
+                R = 6371.0
+                phi1 = math.radians(min_lat)
+                phi2 = math.radians(max_lat)
+                delta_lambda = math.radians(abs(max_lon - min_lon))
+                aoi_area_km2 = round((R ** 2) * abs(math.sin(phi2) - math.sin(phi1)) * delta_lambda, 1)
+            except Exception:
+                aoi_area_km2 = None
+
         if df.empty:
             return {
                 "total_detections": 0,
                 "modis_detections": 0,
                 "viirs_detections": 0,
+                "viirs_to_modis_ratio": None,
                 "total_frp_mw": 0.0,
                 "mean_frp_mw": 0.0,
                 "total_footprint_km2": 0.0,
+                "aoi_surface_area_km2": aoi_area_km2,
                 "sensor_breakdown": {},
                 "satellite_breakdown": {},
                 "confidence_breakdown": {"high": 0, "nominal": 0, "low": 0},
@@ -128,6 +163,7 @@ class AnalyticsService:
             "total_frp_mw": round(total_frp, 1),
             "mean_frp_mw": round(mean_frp, 1),
             "total_footprint_km2": round(total_area, 1),
+            "aoi_surface_area_km2": aoi_area_km2,
             "sensor_breakdown": {
                 "MODIS": len(modis_pts),
                 "VIIRS": len(viirs_pts)

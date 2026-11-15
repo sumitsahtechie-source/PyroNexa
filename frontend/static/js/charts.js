@@ -9,11 +9,28 @@ const PyroCharts = {
     paper_bgcolor: 'transparent',
     plot_bgcolor: 'transparent',
     font: {
-      color: '#94a3b8',
+      color: '#cbd5e1',
       family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     },
     gridcolor: '#1e293b',
     zerolinecolor: '#334155'
+  },
+
+  _renderEmptyPlot: function(el, message) {
+    if (!el) return;
+    Plotly.react(el, [], {
+      ...this.theme,
+      margin: { t: 20, b: 20, l: 20, r: 20 },
+      annotations: [{
+        text: message || 'No active fire data matches current filters.',
+        xref: 'paper',
+        yref: 'paper',
+        x: 0.5,
+        y: 0.5,
+        showarrow: false,
+        font: { size: 13, color: '#94a3b8' }
+      }]
+    }, { responsive: true, displayModeBar: false });
   },
 
   renderAllCharts: function(overview, calendar, historical, comparison, anomalies) {
@@ -78,7 +95,11 @@ const PyroCharts = {
 
   renderCalendarHeatmap: function(data) {
     const calEl = document.getElementById('chart-calendar-heatmap');
-    if (!calEl || !data || !data.matrix || data.matrix.length === 0) return;
+    if (!calEl) return;
+    if (!data || !data.matrix || data.matrix.length === 0) {
+      this._renderEmptyPlot(calEl, 'No seasonal fire activity recorded for current filter criteria.');
+      return;
+    }
 
     const years = data.years.map(String);
     const months = data.month_names;
@@ -133,49 +154,53 @@ const PyroCharts = {
   renderHistoricalCharts: function(data) {
     // 1. Monthly Timeline
     const timelineEl = document.getElementById('chart-historical-timeline');
-    if (timelineEl && data.monthly_series && data.monthly_series.length > 0) {
-      const ym = data.monthly_series.map(d => d.year_month);
-      const modisCounts = data.monthly_series.map(d => d.modis_count);
-      const viirsCounts = data.monthly_series.map(d => d.viirs_count);
-      const totalCounts = data.monthly_series.map(d => d.total_count);
+    if (timelineEl) {
+      if (!data || !data.monthly_series || data.monthly_series.length === 0) {
+        this._renderEmptyPlot(timelineEl, 'No historical monthly data matching current filter criteria.');
+      } else {
+        const ym = data.monthly_series.map(d => d.year_month);
+        const modisCounts = data.monthly_series.map(d => d.modis_count);
+        const viirsCounts = data.monthly_series.map(d => d.viirs_count);
+        const totalCounts = data.monthly_series.map(d => d.total_count);
 
-      const traces = [
-        {
-          x: ym,
-          y: totalCounts,
-          name: 'Total Active Fires',
-          type: 'scatter',
-          mode: 'lines+markers',
-          line: { color: '#38bdf8', width: 2.5 }
-        },
-        {
-          x: ym,
-          y: viirsCounts,
-          name: 'VIIRS (375m)',
-          type: 'scatter',
-          mode: 'lines',
-          line: { color: '#f97316', width: 1.8, dash: 'dot' }
-        },
-        {
-          x: ym,
-          y: modisCounts,
-          name: 'MODIS (1km)',
-          type: 'scatter',
-          mode: 'lines',
-          line: { color: '#3b82f6', width: 1.8, dash: 'dash' }
-        }
-      ];
+        const traces = [
+          {
+            x: ym,
+            y: totalCounts,
+            name: 'Total Active Fires',
+            type: 'scatter',
+            mode: 'lines+markers',
+            line: { color: '#38bdf8', width: 2.5 }
+          },
+          {
+            x: ym,
+            y: viirsCounts,
+            name: 'VIIRS (375m)',
+            type: 'scatter',
+            mode: 'lines',
+            line: { color: '#f97316', width: 1.8, dash: 'dot' }
+          },
+          {
+            x: ym,
+            y: modisCounts,
+            name: 'MODIS (1km)',
+            type: 'scatter',
+            mode: 'lines',
+            line: { color: '#3b82f6', width: 1.8, dash: 'dash' }
+          }
+        ];
 
-      const layout = {
-        ...this.theme,
-        margin: { t: 25, b: 45, l: 55, r: 20 },
-        height: 350,
-        legend: { orientation: 'h', y: 1.15, x: 0 },
-        xaxis: { gridcolor: this.theme.gridcolor, title: 'Year-Month' },
-        yaxis: { gridcolor: this.theme.gridcolor, title: 'Detections' }
-      };
+        const layout = {
+          ...this.theme,
+          margin: { t: 25, b: 45, l: 55, r: 20 },
+          height: 350,
+          legend: { orientation: 'h', y: 1.15, x: 0 },
+          xaxis: { gridcolor: this.theme.gridcolor, title: 'Year-Month' },
+          yaxis: { gridcolor: this.theme.gridcolor, title: 'Detections' }
+        };
 
-      Plotly.react(timelineEl, traces, layout, { responsive: true, displayModeBar: false });
+        Plotly.react(timelineEl, traces, layout, { responsive: true, displayModeBar: false });
+      }
     }
 
     // 2. Seasonal Baseline Curve

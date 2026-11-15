@@ -13,8 +13,8 @@
   --border-focus: #38bdf8;
   
   --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --text-dim: #64748b;
+  --text-muted: #cbd5e1;
+  --text-dim: #94a3b8;
   
   /* Primary & Sensor Brand Accents */
   --accent-cyan: #38bdf8;
@@ -276,6 +276,26 @@ body {
   border-radius: 8px;
   padding: 0.65rem 0.85rem;
   font-size: 0.78rem;
+}
+
+.map-empty-state {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  background-color: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border-color);
+  padding: 1.25rem 2rem;
+  border-radius: var(--card-radius);
+  color: #ffffff;
+  font-weight: 500;
+  font-size: 0.9rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 /* ==========================================================================

@@ -10,6 +10,9 @@ from backend.utils.validators import (
     validate_date_range,
     validate_sensor_filter,
     validate_confidence_filter,
+    validate_daynight_filter,
+    validate_satellite_filter,
+    validate_frp_range,
     parse_query_params,
     ValidationError
 )
@@ -107,6 +110,43 @@ class TestValidators:
 
         with pytest.raises(ValidationError, match="Invalid confidence category"):
             validate_confidence_filter("invalid_conf")
+
+    def test_validate_daynight_filter(self):
+        assert validate_daynight_filter("all") == "all"
+        assert validate_daynight_filter("D") == "D"
+        assert validate_daynight_filter("n") == "N"
+
+        with pytest.raises(ValidationError, match="Invalid daynight filter"):
+            validate_daynight_filter("invalid")
+
+    def test_validate_satellite_filter(self):
+        assert validate_satellite_filter("all") == "all"
+        assert validate_satellite_filter("Terra") == "Terra"
+        assert validate_satellite_filter("aqua") == "Aqua"
+        assert validate_satellite_filter("NOAA-20") == "NOAA-20"
+        assert validate_satellite_filter("noaa-21") == "NOAA-21"
+        assert validate_satellite_filter("Suomi-NPP") == "Suomi-NPP"
+
+        with pytest.raises(ValidationError, match="Invalid satellite"):
+            validate_satellite_filter("Hubble")
+
+    def test_validate_frp_range(self):
+        min_f, max_f = validate_frp_range("10.5", "100.0")
+        assert min_f == 10.5
+        assert max_f == 100.0
+
+        min_f, max_f = validate_frp_range(None, "")
+        assert min_f is None
+        assert max_f is None
+
+        with pytest.raises(ValidationError, match="min_frp must be non-negative"):
+            validate_frp_range("-5", "10")
+
+        with pytest.raises(ValidationError, match="min_frp .* cannot exceed max_frp"):
+            validate_frp_range("50", "20")
+
+        with pytest.raises(ValidationError, match="must be numeric"):
+            validate_frp_range("abc", "10")
 
     def test_parse_query_params_preset(self):
         params = {"region": "california", "sensor": "VIIRS", "page": "2", "per_page": "100"}

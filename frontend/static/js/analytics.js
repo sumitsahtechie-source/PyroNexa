@@ -95,7 +95,7 @@ const PyroExplorer = {
       return;
     }
 
-    tbody.innerHTML = pageData.map(pt => {
+    tbody.innerHTML = pageData.map((pt, idx) => {
       const isModis = pt.instrument === 'MODIS';
       const badgeClass = isModis ? 'badge-modis' : 'badge-viirs';
       const confBadge = pt.confidence_cat === 'high' 
@@ -103,7 +103,7 @@ const PyroExplorer = {
         : (pt.confidence_cat === 'nominal' ? 'badge-elevated' : 'badge bg-secondary bg-opacity-25 text-muted');
 
       return `
-        <tr>
+        <tr onclick="PyroExplorer.showDetails(${startIdx + idx})" style="cursor: pointer;" title="Click to view full hotspot details">
           <td><span class="badge ${badgeClass}">${pt.instrument}</span></td>
           <td><strong>${pt.satellite}</strong></td>
           <td><code>${pt.acq_date}</code></td>
@@ -135,6 +135,55 @@ const PyroExplorer = {
   changePage: function(newPage) {
     this.currentPage = newPage;
     this.renderTable();
+  },
+
+  showDetails: function(index) {
+    const pt = this.filteredFires[index];
+    if (!pt) return;
+    const body = document.getElementById('record-details-modal-body');
+    if (!body) return;
+    const isModis = pt.instrument === 'MODIS';
+    body.innerHTML = `
+      <div class="row g-3">
+        <div class="col-6">
+          <div class="text-dim small">Sensor &bull; Satellite</div>
+          <div class="fw-bold text-white fs-6">${pt.instrument} &bull; ${pt.satellite}</div>
+          <div class="small text-info">${isModis ? '1,000 m nominal nadir' : '375 m I-band nadir'}</div>
+        </div>
+        <div class="col-6">
+          <div class="text-dim small">Acquisition Timestamp</div>
+          <div class="fw-bold text-white fs-6">${pt.acq_date} @ ${pt.acq_time} UTC</div>
+          <div class="small text-muted">${pt.daynight === 'D' ? 'Daytime (Solar Peak)' : 'Nighttime'}</div>
+        </div>
+        <div class="col-6">
+          <div class="text-dim small">Geographic Coordinates</div>
+          <div class="fw-bold text-white">${pt.latitude.toFixed(5)}°, ${pt.longitude.toFixed(5)}°</div>
+          <div class="small text-dim">Cell: ${pt.grid_cell_id}</div>
+        </div>
+        <div class="col-6">
+          <div class="text-dim small">Harmonized Confidence</div>
+          <div class="fw-bold text-warning text-capitalize">${pt.confidence_cat} (${pt.confidence_pct}%)</div>
+          <div class="small text-dim">Raw FIRMS Value: '${pt.confidence_raw}'</div>
+        </div>
+        <div class="col-6">
+          <div class="text-dim small">Fire Radiative Power (FRP)</div>
+          <div class="fw-bold text-danger fs-5">${pt.frp.toFixed(1)} MW</div>
+        </div>
+        <div class="col-6">
+          <div class="text-dim small">Ground Footprint Area</div>
+          <div class="fw-bold text-white fs-5">${pt.footprint_area_km2.toFixed(3)} km²</div>
+          <div class="small text-dim">Scan: ${pt.scan || '1.0'} km &times; Track: ${pt.track || '1.0'} km</div>
+        </div>
+        <div class="col-12 border-top border-secondary border-opacity-25 pt-2">
+          <div class="text-dim small">Thermal Brightness: <strong class="text-white">${pt.brightness.toFixed(1)} K</strong></div>
+        </div>
+      </div>
+    `;
+    const modalEl = document.getElementById('recordDetailsModal');
+    if (modalEl && window.bootstrap) {
+      const modal = new bootstrap.Modal(modalEl);
+      modal.show();
+    }
   },
 
   renderAnomalyTable: function() {

@@ -1,12 +1,12 @@
 # Project Details — PyroNexa 26
 
-**Project Name:** PyroNexa – Satellite Fire Intelligence Platform  
+**Project Title:** PyroNexa – Satellite Fire Intelligence Platform  
 **Challenge:** 2026 NASA Space Apps Challenge — Harmonization of MODIS and VIIRS Hot Spots  
-**Team:** PyroNexa 26  
+**Team Name:** PyroNexa 26  
 
 ---
 
-## 1. Problem Statement
+## 1. Problem Description
 
 Active fire observations from space are vital for wildfire suppression, ecological monitoring, atmospheric emissions modeling, and climate research. For over two decades, the Moderate Resolution Imaging Spectroradiometer (MODIS) onboard NASA's Terra and Aqua satellites provided the foundational global fire record. The Visible Infrared Imaging Radiometer Suite (VIIRS)—flying on Suomi NPP, NOAA-20, and NOAA-21—represents the modern operational continuity series, offering a much finer nominal resolution of 375 meters.
 
@@ -46,6 +46,15 @@ PyroNexa delivers an end-to-end, scientifically defensible platform that bridges
 
 - **Backend**: Python 3.11+ / Python 3.14, Flask REST API, Pandas, NumPy, SciPy.
 - **Frontend**: Vanilla ES6 modules, HTML5, CSS3 with dark navy aerospace palette, Bootstrap 5.
-- **Visualization**: Leaflet.js (CartoDB dark basemap), Plotly.js.
-- **Verification**: 55 automated Pytest unit and integration tests (100% pass rate).
-- **Deployment**: Production WSGI callable (`run.py`), containerized `Dockerfile`, and `Procfile`.
+- **Visualization**: Leaflet.js (CartoDB dark basemap, OSM Standard, Esri Imagery), Plotly.js.
+- **Verification**: 60 automated Pytest unit and integration tests (100% pass rate).
+- **Deployment**: Production WSGI callable (`run.py`), containerized `Dockerfile`, and `docker-compose.yml`.
+
+---
+
+## 4. Intended Impact & Creativity
+
+PyroNexa transforms opaque remote sensing telemetry into actionable, transparent environmental intelligence:
+- **Emergency Responders**: Gain immediate sub-pixel perimeter situational awareness via VIIRS 375m observations alongside multi-decadal MODIS fire history.
+- **Climate Scientists**: Access normalized multi-decadal time series (RFAI) devoid of sensor transition artifacts.
+- **Land Managers**: Pinpoint historical seasonal burning windows using the Burning Activity Calendar and detect emerging climate extremes via robust Z-score/MAD anomaly scoring.

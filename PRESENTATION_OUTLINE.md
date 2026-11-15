@@ -40,6 +40,7 @@
 - **Key Features**:
   - Real-time Leaflet mapping with sensor color coding (MODIS Blue vs VIIRS Orange).
   - Radiative power (FRP) proportional marker sizing.
+  - Free OpenStreetMap default base layer with Carto Dark and Esri Satellite options.
   - Detailed telemetry popups: Exact coordinates, acquisition time (UTC), sensor confidence, FRP in MW, and brightness temperature.
 - **Visual**: Screenshot of California wildfire cluster plotted on the live PyroNexa interactive map.
 
@@ -60,7 +61,7 @@
 - **Statistical Rigor**:
   - Dual-metric evaluation: Parametric Z-Score + Robust Median Absolute Deviation (MAD).
   - Evaluated on calendar-month subsets to eliminate seasonal cycle false alarms.
-  - Transparent classification: Normal, Elevated, High Anomaly, and Extreme Fire Activity ($Z \ge 3.0$).
+  - Clean typographic indicators: Normal, Elevated, High Anomaly, and Extreme Fire Activity ($Z \ge 3.0$).
 - **Visual**: Anomaly timeline bar chart with severity color coding and baseline threshold lines.
 
 ---
@@ -68,8 +69,8 @@
 ### Slide 7: Impact, Open Source, and NASA Alignment
 - **Header**: Empowering Researchers, Firefighters, and Land Managers
 - **Key Takeaways**:
-  - Fully functional, test-verified platform with 55 passing automated tests.
+  - Fully functional, test-verified platform with 60 passing automated unit & integration tests.
   - Connects to live NASA FIRMS API or operates in verified multi-year simulation mode.
-  - Open source MIT license, containerized deployment, and full CSV export capabilities.
+  - Open source MIT license, containerized deployment, and full CSV export capabilities with NASA attribution.
   - **Repository & Demo**: Live on GitHub and accessible for global climate resilience.
 - **Visual**: Summary graphic of team, technology stack, and NASA LANCE/FIRMS attribution.

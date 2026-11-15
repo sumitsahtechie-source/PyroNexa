@@ -22,7 +22,9 @@ PyroNexa gratefully acknowledges the following open-source software packages:
 
 ### 1.2 Frontend & Visualization Stack
 - **Leaflet.js**: Mobile-friendly interactive JavaScript mapping engine. [Volodymyr Agafonkin](https://leafletjs.com/)
+- **OpenStreetMap**: Standard global map tiles. [&copy; OpenStreetMap contributors](https://www.openstreetmap.org/)
 - **CartoDB Dark Matter**: High-contrast dark basemap tiles. [&copy; CARTO &copy; OpenStreetMap contributors](https://carto.com/basemaps)
+- **Esri World Imagery**: Satellite background imagery. [&copy; Esri](https://www.esri.com/)
 - **Plotly.js**: Declarative scientific charting library. [Plotly Technologies Inc.](https://plotly.com/javascript/)
 - **Bootstrap 5**: Responsive CSS grid and interface components. [Bootstrap Authors & Twitter, Inc.](https://getbootstrap.com/)
 

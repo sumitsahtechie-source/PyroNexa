@@ -49,6 +49,10 @@ def _get_harmonized_dataset(params: dict):
     start_date = params["start_date"]
     end_date = params["end_date"]
     confidence = params["confidence"]
+    satellite = params.get("satellite")
+    daynight = params.get("daynight")
+    min_frp = params.get("min_frp")
+    max_frp = params.get("max_frp")
 
     # Retrieve data
     raw_df, metadata = firms_service.get_fire_data(
@@ -69,9 +73,17 @@ def _get_harmonized_dataset(params: dict):
         sensor=sensor,
         start_date=start_date,
         end_date=end_date,
-        confidence=confidence
+        confidence=confidence,
+        satellite=satellite,
+        daynight=daynight,
+        min_frp=min_frp,
+        max_frp=max_frp
     )
 
+    metadata["satellite_filter"] = satellite
+    metadata["daynight_filter"] = daynight
+    metadata["min_frp"] = min_frp
+    metadata["max_frp"] = max_frp
     metadata["total_records_returned"] = len(filtered_df)
     return filtered_df, metadata
 
@@ -296,7 +308,11 @@ def export_csv():
     output.write(f"# Export Date: {now_utc.isoformat()}\n")
     output.write(f"# Region Preset: {params.get('region', 'custom')}\n")
     output.write(f"# Sensor Filter: {params.get('sensor', 'ALL')}\n")
+    output.write(f"# Satellite Filter: {params.get('satellite', 'all')}\n")
     output.write(f"# Confidence Filter: {params.get('confidence', 'all')}\n")
+    output.write(f"# Day/Night Filter: {params.get('daynight', 'all')}\n")
+    if params.get('min_frp') is not None or params.get('max_frp') is not None:
+        output.write(f"# FRP Filter: min={params.get('min_frp')}, max={params.get('max_frp')} MW\n")
     export_df.to_csv(output, index=False)
 
     mem = io.BytesIO()

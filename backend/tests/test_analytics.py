@@ -63,6 +63,41 @@ class TestAnalyticsService:
         conf_filtered = service.filter_data(harmonized_df, confidence="high")
         assert (conf_filtered["confidence_cat"] == "high").all()
 
+        # Filter by FRP range
+        frp_filtered = service.filter_data(harmonized_df, min_frp=20.0, max_frp=30.0)
+        assert (frp_filtered["frp"] >= 20.0).all()
+        assert (frp_filtered["frp"] <= 30.0).all()
+
+        # Filter by specific satellite
+        sat_filtered = service.filter_data(harmonized_df, satellite="Aqua")
+        assert (sat_filtered["satellite"] == "Aqua").all()
+
+        # Filter by daynight
+        dn_filtered = service.filter_data(harmonized_df, daynight="D")
+        assert (dn_filtered["daynight"] == "D").all()
+
+    def test_empty_dataframe_handling(self):
+        service = AnalyticsService()
+        empty_df = pd.DataFrame()
+        metadata = {"bbox": [-120.0, 35.0, -115.0, 40.0]}
+
+        kpis = service.get_overview_kpis(empty_df, metadata)
+        assert kpis["total_detections"] == 0
+        assert kpis["aoi_surface_area_km2"] is not None
+        assert kpis["aoi_surface_area_km2"] > 0
+
+        cal = service.get_burning_activity_calendar(empty_df)
+        assert cal["matrix"] == []
+
+        hist = service.get_historical_analysis(empty_df)
+        assert hist["monthly_series"] == []
+
+        comp = service.get_sensor_comparison(empty_df)
+        assert comp["modis_stats"] == {}
+
+        anom = service.detect_anomalies(empty_df)
+        assert anom["monthly_anomalies"] == []
+
     def test_overview_kpis(self, harmonized_df):
         service = AnalyticsService()
         metadata = {"source": "test"}

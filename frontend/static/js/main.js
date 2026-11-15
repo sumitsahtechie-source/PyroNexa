@@ -8,7 +8,10 @@ const PyroNexa = {
     region: 'california',
     bbox: [-125.0, 32.0, -114.0, 42.5],
     sensor: 'ALL',
+    satellite: 'all',
     confidence: 'all',
+    daynight: 'all',
+    minFrp: '',
     startDate: '',
     endDate: '',
     activeSection: 'overview',
@@ -56,6 +59,36 @@ const PyroNexa = {
     if (sensorSelect) {
       sensorSelect.addEventListener('change', (e) => {
         this.state.sensor = e.target.value;
+        this.state.currentPage = 1;
+        this.refreshAllData();
+      });
+    }
+
+    // Specific Satellite change
+    const satSelect = document.getElementById('filter-satellite');
+    if (satSelect) {
+      satSelect.addEventListener('change', (e) => {
+        this.state.satellite = e.target.value;
+        this.state.currentPage = 1;
+        this.refreshAllData();
+      });
+    }
+
+    // Day/Night Overpass change
+    const dnSelect = document.getElementById('filter-daynight');
+    if (dnSelect) {
+      dnSelect.addEventListener('change', (e) => {
+        this.state.daynight = e.target.value;
+        this.state.currentPage = 1;
+        this.refreshAllData();
+      });
+    }
+
+    // Min FRP change
+    const frpSelect = document.getElementById('filter-min-frp');
+    if (frpSelect) {
+      frpSelect.addEventListener('change', (e) => {
+        this.state.minFrp = e.target.value;
         this.state.currentPage = 1;
         this.refreshAllData();
       });
@@ -155,7 +188,10 @@ const PyroNexa = {
     const p = new URLSearchParams();
     if (this.state.region) p.set('region', this.state.region);
     if (this.state.sensor) p.set('sensor', this.state.sensor);
+    if (this.state.satellite && this.state.satellite !== 'all') p.set('satellite', this.state.satellite);
     if (this.state.confidence) p.set('confidence', this.state.confidence);
+    if (this.state.daynight && this.state.daynight !== 'all') p.set('daynight', this.state.daynight);
+    if (this.state.minFrp) p.set('min_frp', this.state.minFrp);
     if (this.state.startDate) p.set('start_date', this.state.startDate);
     if (this.state.endDate) p.set('end_date', this.state.endDate);
     p.set('page', this.state.currentPage);
@@ -232,7 +268,8 @@ const PyroNexa = {
 
       // Update UI components
       this.renderOverview();
-      if (window.PyroMap) window.PyroMap.updateFires(this.state.rawFires);
+      const activeBbox = (overview.data && overview.data.metadata) ? overview.data.metadata.bbox : this.state.bbox;
+      if (window.PyroMap) window.PyroMap.updateFires(this.state.rawFires, activeBbox);
       if (window.PyroCharts) {
         window.PyroCharts.renderAllCharts(
           this.state.overviewData,
@@ -313,21 +350,50 @@ const PyroNexa = {
     if (dateSpanEl && data.date_span) {
       dateSpanEl.textContent = `${data.date_span.min_date || 'N/A'} to ${data.date_span.max_date || 'N/A'} (${data.date_span.total_days} days)`;
     }
+
+    // AOI Bounding Box & Surface Area
+    const aoiAreaEl = document.getElementById('overview-aoi-area');
+    if (aoiAreaEl) {
+      if (data.aoi_surface_area_km2) {
+        aoiAreaEl.textContent = `AOI Extent: ~${data.aoi_surface_area_km2.toLocaleString()} km²`;
+      } else {
+        aoiAreaEl.textContent = 'Custom Bounds';
+      }
+    }
+    const aoiCoordsEl = document.getElementById('overview-aoi-coords');
+    if (aoiCoordsEl && data.metadata && data.metadata.bbox) {
+      const b = data.metadata.bbox;
+      aoiCoordsEl.textContent = `[${b[0]}°, ${b[1]}°] to [${b[2]}°, ${b[3]}°]`;
+    }
   },
 
   resetFilters: function() {
     this.state.region = 'california';
     this.state.sensor = 'ALL';
+    this.state.satellite = 'all';
     this.state.confidence = 'all';
+    this.state.daynight = 'all';
+    this.state.minFrp = '';
     this.state.startDate = '';
     this.state.endDate = '';
     this.state.currentPage = 1;
 
-    document.getElementById('filter-region').value = 'california';
-    document.getElementById('filter-sensor').value = 'ALL';
-    document.getElementById('filter-confidence').value = 'all';
-    document.getElementById('filter-start-date').value = '';
-    document.getElementById('filter-end-date').value = '';
+    const elReg = document.getElementById('filter-region');
+    if (elReg) elReg.value = 'california';
+    const elSens = document.getElementById('filter-sensor');
+    if (elSens) elSens.value = 'ALL';
+    const elSat = document.getElementById('filter-satellite');
+    if (elSat) elSat.value = 'all';
+    const elConf = document.getElementById('filter-confidence');
+    if (elConf) elConf.value = 'all';
+    const elDn = document.getElementById('filter-daynight');
+    if (elDn) elDn.value = 'all';
+    const elFrp = document.getElementById('filter-min-frp');
+    if (elFrp) elFrp.value = '';
+    const elStart = document.getElementById('filter-start-date');
+    if (elStart) elStart.value = '';
+    const elEnd = document.getElementById('filter-end-date');
+    if (elEnd) elEnd.value = '';
 
     this.refreshAllData();
   },

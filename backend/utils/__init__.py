@@ -5,6 +5,9 @@ from backend.utils.validators import (
     validate_date_range,
     validate_sensor_filter,
     validate_confidence_filter,
+    validate_daynight_filter,
+    validate_satellite_filter,
+    validate_frp_range,
     parse_query_params,
     ValidationError
 )
@@ -22,6 +25,9 @@ __all__ = [
     "validate_date_range",
     "validate_sensor_filter",
     "validate_confidence_filter",
+    "validate_daynight_filter",
+    "validate_satellite_filter",
+    "validate_frp_range",
     "parse_query_params",
     "ValidationError",
     "haversine_distance_km",

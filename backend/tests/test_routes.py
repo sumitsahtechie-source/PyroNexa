@@ -113,7 +113,7 @@ class TestFlaskRoutes:
         assert "methodology_explanation" in data["data"]
 
     def test_export_csv_endpoint(self, client):
-        resp = client.get("/api/export/csv?region=california")
+        resp = client.get("/api/export/csv?region=california&satellite=Aqua&min_frp=15.0")
         assert resp.status_code == 200
         assert "text/csv" in resp.headers["Content-Type"]
         assert "attachment" in resp.headers["Content-Disposition"]
@@ -125,3 +125,16 @@ class TestFlaskRoutes:
         assert "instrument" in csv_text
         assert "confidence_cat" in csv_text
         assert "# NASA FIRMS Attribution" in csv_text
+        assert "# Satellite Filter: Aqua" in csv_text
+        assert "# FRP Filter: min=15.0" in csv_text
+
+    def test_get_fires_with_frp_and_satellite_filters(self, client):
+        resp = client.get("/api/fires?region=california&satellite=Terra&daynight=D&min_frp=10.0&max_frp=200.0")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["success"] is True
+        for pt in data["data"]:
+            assert pt["satellite"] == "Terra"
+            assert pt["daynight"] == "D"
+            assert pt["frp"] >= 10.0
+            assert pt["frp"] <= 200.0

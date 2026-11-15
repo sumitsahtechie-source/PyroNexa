@@ -149,6 +149,63 @@ def validate_confidence_filter(confidence: Optional[str]) -> str:
     return conf_clean
 
 
+def validate_daynight_filter(daynight: Optional[str]) -> str:
+    """Validate day/night overpass filter: 'all', 'D', 'N'."""
+    if not daynight:
+        return "all"
+    dn_clean = daynight.strip().lower()
+    if dn_clean == "all":
+        return "all"
+    if dn_clean in ("d", "day"):
+        return "D"
+    if dn_clean in ("n", "night"):
+        return "N"
+    raise ValidationError(f"Invalid daynight filter '{daynight}'. Expected 'all', 'D', or 'N'")
+
+
+def validate_satellite_filter(satellite: Optional[str]) -> str:
+    """Validate specific satellite platform filter."""
+    if not satellite:
+        return "all"
+    sat_clean = satellite.strip()
+    valid_sats = {"all", "Terra", "Aqua", "NOAA-20", "NOAA-21", "Suomi-NPP"}
+    # Case-insensitive lookup
+    sat_map = {s.lower(): s for s in valid_sats}
+    if sat_clean.lower() not in sat_map:
+        raise ValidationError(f"Invalid satellite '{satellite}'. Expected one of: {sorted(list(valid_sats))}")
+    return sat_map[sat_clean.lower()]
+
+
+def validate_frp_range(
+    min_frp: Optional[Any],
+    max_frp: Optional[Any]
+) -> Tuple[Optional[float], Optional[float]]:
+    """Validate minimum and maximum Fire Radiative Power (MW)."""
+    parsed_min = None
+    parsed_max = None
+
+    if min_frp is not None and str(min_frp).strip() != "":
+        try:
+            parsed_min = float(min_frp)
+        except (ValueError, TypeError):
+            raise ValidationError(f"min_frp must be numeric (got '{min_frp}')")
+        if parsed_min < 0:
+            raise ValidationError(f"min_frp must be non-negative (got {parsed_min})")
+
+    if max_frp is not None and str(max_frp).strip() != "":
+        try:
+            parsed_max = float(max_frp)
+        except (ValueError, TypeError):
+            raise ValidationError(f"max_frp must be numeric (got '{max_frp}')")
+        if parsed_max < 0:
+            raise ValidationError(f"max_frp must be non-negative (got {parsed_max})")
+
+    if parsed_min is not None and parsed_max is not None and parsed_min > parsed_max:
+        raise ValidationError(f"min_frp ({parsed_min}) cannot exceed max_frp ({parsed_max})")
+
+    return parsed_min, parsed_max
+
+
 def parse_query_params(params: Dict[str, Any]) -> Dict[str, Any]:
     """Extract and validate all standard query parameters from Flask request.args."""
     validated: Dict[str, Any] = {}
@@ -179,11 +236,18 @@ def parse_query_params(params: Dict[str, Any]) -> Dict[str, Any]:
         validated["start_date"] = None
         validated["end_date"] = None
 
-    # Sensor
+    # Sensor & Satellite
     validated["sensor"] = validate_sensor_filter(params.get("sensor"))
+    validated["satellite"] = validate_satellite_filter(params.get("satellite"))
 
-    # Confidence
+    # Confidence & Day/Night
     validated["confidence"] = validate_confidence_filter(params.get("confidence"))
+    validated["daynight"] = validate_daynight_filter(params.get("daynight"))
+
+    # FRP range filtering
+    min_frp, max_frp = validate_frp_range(params.get("min_frp"), params.get("max_frp"))
+    validated["min_frp"] = min_frp
+    validated["max_frp"] = max_frp
 
     # Pagination
     try:
