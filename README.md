@@ -3,7 +3,7 @@
 [![NASA Space Apps Challenge 2026](https://img.shields.io/badge/NASA%20Space%20Apps-2026%20Challenge-orange.svg)](https://www.spaceappschallenge.org/2026/challenges/modis-and-viirs-hot-spots/)
 [![Python](https://img.shields.io/badge/Python-3.11%2B%20%7C%203.14-blue.svg)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Backend-Flask%203.1-black.svg)](https://palletsprojects.com/p/flask/)
-[![Tests](https://img.shields.io/badge/Tests-55%20Passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-62%20Passed%20(100%25)-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 > **Team**: PyroNexa 26  
@@ -29,13 +29,13 @@ PyroNexa delivers a transparent harmonization framework featuring:
 
 ## 🚀 Key Features & Dashboard Sections
 
-1. **Overview**: Total detections, distinct MODIS vs VIIRS counts, empirical detection ratio, total Fire Radiative Power (MW), ground footprint area (km²), satellite provenance, and NASA API connectivity status.
-2. **Live Fire Map**: Interactive Leaflet map with dark satellite tiles, sensor-specific color coding (Blue: MODIS 1km; Orange: VIIRS 375m), FRP-scaled radius markers, and rich NASA telemetry popups.
+1. **Overview**: Total detections, distinct MODIS vs VIIRS counts, empirical detection ratio, total Fire Radiative Power (MW), ground footprint area (km²), satellite provenance, AOI boundary extent, and NASA API connectivity status.
+2. **Live Fire Map**: Interactive Leaflet map with free OpenStreetMap default tiles, Carto Dark & Esri satellite options, sensor-specific color coding (Blue: MODIS 1km; Orange: VIIRS 375m), FRP-scaled radius markers, and rich NASA telemetry popups.
 3. **Burning Activity Calendar**: Year-versus-Month active fire density heatmap matrix with interactive hover tooltips exposing monthly hotspot volume and cumulative radiative power.
 4. **Historical Analysis**: Multi-year monthly timeline, 12-month climatological median curve with 25th–75th percentile envelope, and annual stacked volume trends.
 5. **Sensor Comparison**: Side-by-side technical specs, empirical detection ratio ($VIIRS/MODIS$), pixel ground area ratio, FRP distribution quantiles, and diurnal overpass proportions.
 6. **Statistical Anomaly Detection**: Transparent seasonal Z-score and MAD anomaly scoring categorized into Normal, Elevated, High Anomaly, and Extreme Fire Activity.
-7. **Data Explorer**: Searchable, multi-column sortable table with client-side pagination and one-click filtered CSV export.
+7. **Data Explorer**: Searchable, multi-column sortable table with client-side pagination, record detail modal, and one-click filtered CSV export with NASA attribution headers.
 8. **About & Science**: In-depth scientific documentation, NASA FIRMS reference, methodology derivation, and API key setup modal.
 
 ---
@@ -46,9 +46,9 @@ PyroNexa delivers a transparent harmonization framework featuring:
 - **Data Science & Geospatial**: Pandas, NumPy, SciPy
 - **Frontend**: HTML5, CSS3, JavaScript (Vanilla ES6 modules)
 - **Styling**: Bootstrap 5 + Custom Dark Navy Aerospace Theme
-- **Mapping & Visualizations**: Leaflet.js (CartoDB Dark Basemap), Plotly.js
-- **Testing**: Pytest (55 automated tests, 100% pass rate), Flask Test Client
-- **Configuration & Caching**: python-dotenv, Two-tiered Memory/Disk Cache
+- **Mapping & Visualizations**: Leaflet.js (OpenStreetMap, Carto Dark, Esri), Plotly.js
+- **Testing**: Pytest (62 automated tests, 100% pass rate), Flask Test Client
+- **Configuration & Caching**: python-dotenv, Two-tiered Memory/Disk Cache (SHA-256)
 
 ---
 
@@ -94,7 +94,7 @@ Open **`http://127.0.0.1:5000`** in your browser.
 ```bash
 python3 -m pytest backend/tests -v
 ```
-All **55 unit and integration tests** execute in under 4 seconds with 100% pass rate.
+All **62 unit and integration tests** execute in under 7 seconds with 100% pass rate.
 
 ---
 
@@ -104,22 +104,24 @@ Detailed technical documentation is available in the `docs/` directory:
 - [System Architecture](file:///Users/macbookpro/Desktop/PyroNexa/docs/ARCHITECTURE.md)
 - [Harmonization Methodology](file:///Users/macbookpro/Desktop/PyroNexa/docs/HARMONIZATION_METHODOLOGY.md)
 - [NASA Data Sources & Sensors](file:///Users/macbookpro/Desktop/PyroNexa/docs/DATA_SOURCES.md)
-- [Implementation Status](file:///Users/macbookpro/Desktop/PyroNexa/docs/IMPLEMENTATION_STATUS.md)
-- [Test Report](file:///Users/macbookpro/Desktop/PyroNexa/docs/TEST_REPORT.md)
+- [Final Implementation Report](file:///Users/macbookpro/Desktop/PyroNexa/docs/FINAL_IMPLEMENTATION_REPORT.md)
+- [Final Test Report](file:///Users/macbookpro/Desktop/PyroNexa/docs/FINAL_TEST_REPORT.md)
+- [Final Audit Report](file:///Users/macbookpro/Desktop/PyroNexa/docs/FINAL_AUDIT_REPORT.md)
+- [Known Limitations](file:///Users/macbookpro/Desktop/PyroNexa/docs/KNOWN_LIMITATIONS.md)
 - [Deployment Guide](file:///Users/macbookpro/Desktop/PyroNexa/docs/DEPLOYMENT.md)
 
 ---
 
 ## 📄 NASA Space Apps Challenge Submission Materials
 
-The following official submission artifacts are prepared in the repository root:
-- [`PROJECT_SUMMARY.md`](file:///Users/macbookpro/Desktop/PyroNexa/PROJECT_SUMMARY.md) (50–200 word summary)
-- [`PROJECT_DETAILS.md`](file:///Users/macbookpro/Desktop/PyroNexa/PROJECT_DETAILS.md) (Full technical description)
-- [`SI_DISCLOSURE.md`](file:///Users/macbookpro/Desktop/PyroNexa/SI_DISCLOSURE.md) (Synthetic Intelligence disclosure)
-- [`NASA_DATA_SOURCES.md`](file:///Users/macbookpro/Desktop/PyroNexa/NASA_DATA_SOURCES.md) (NASA EOSDIS / FIRMS links)
-- [`OTHER_RESOURCES.md`](file:///Users/macbookpro/Desktop/PyroNexa/OTHER_RESOURCES.md) (Software and open-source credits)
-- [`DEMO_VIDEO_SCRIPT.md`](file:///Users/macbookpro/Desktop/PyroNexa/DEMO_VIDEO_SCRIPT.md) (30-second video storyboard)
-- [`PRESENTATION_OUTLINE.md`](file:///Users/macbookpro/Desktop/PyroNexa/PRESENTATION_OUTLINE.md) (7-slide presentation deck outline)
+The following official submission artifacts are prepared in `submission/` and the repository root:
+- [`PROJECT_SUMMARY.md`](file:///Users/macbookpro/Desktop/PyroNexa/submission/PROJECT_SUMMARY.md) (146-word executive summary)
+- [`PROJECT_DETAILS.md`](file:///Users/macbookpro/Desktop/PyroNexa/submission/PROJECT_DETAILS.md) (Full technical challenge description)
+- [`SI_DISCLOSURE.md`](file:///Users/macbookpro/Desktop/PyroNexa/submission/SI_DISCLOSURE.md) (Synthetic Intelligence disclosure)
+- [`NASA_DATA_SOURCES.md`](file:///Users/macbookpro/Desktop/PyroNexa/submission/NASA_DATA_SOURCES.md) (NASA EOSDIS / FIRMS links)
+- [`OTHER_RESOURCES.md`](file:///Users/macbookpro/Desktop/PyroNexa/submission/OTHER_RESOURCES.md) (Software and open-source credits)
+- [`DEMO_VIDEO_SCRIPT.md`](file:///Users/macbookpro/Desktop/PyroNexa/submission/DEMO_VIDEO_SCRIPT.md) (30-second video storyboard)
+- [`PRESENTATION_OUTLINE.md`](file:///Users/macbookpro/Desktop/PyroNexa/submission/PRESENTATION_OUTLINE.md) (7-slide presentation deck outline)
 
 ---
 

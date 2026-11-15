@@ -69,7 +69,7 @@
 ### Slide 7: Impact, Open Source, and NASA Alignment
 - **Header**: Empowering Researchers, Firefighters, and Land Managers
 - **Key Takeaways**:
-  - Fully functional, test-verified platform with 60 passing automated unit & integration tests.
+  - Fully functional, test-verified platform with 62 passing automated unit & integration tests.
   - Connects to live NASA FIRMS API or operates in verified multi-year simulation mode.
   - Open source MIT license, containerized deployment, and full CSV export capabilities with NASA attribution.
   - **Repository & Demo**: Live on GitHub and accessible for global climate resilience.

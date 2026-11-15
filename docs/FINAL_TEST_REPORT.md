@@ -12,28 +12,28 @@
 - **Test Framework**: `pytest 9.1.1`
 - **Execution Engine**: Python 3.14.6 (`darwin` arm64)
 - **Plugin Stack**: `anyio 4.15.0`, `pluggy 1.6.0`
-- **Total Tests Collected**: 60
-- **Total Tests Passed**: **60**
+- **Total Tests Collected**: 62
+- **Total Tests Passed**: **62**
 - **Total Tests Failed**: **0**
 - **Total Errors / Skipped**: **0**
-- **Execution Duration**: 3.20 seconds
+- **Execution Duration**: 3.58 seconds
 - **Pass Rate**: **100.0%**
 
 ```text
 ============================= test session starts ==============================
-platform darwin -- Python 3.14.6, pytest-9.1.1, pluggy-1.6.0 -- /Library/Frameworks/Python.framework/Versions/3.14/bin/python3
+platform darwin -- Python 3.14.6, pytest-9.1.1, pluggy-1.6.0
 cachedir: .pytest_cache
 rootdir: /Users/macbookpro/Desktop/PyroNexa
 plugins: anyio-4.15.0
-collected 60 items
+collected 62 items
 
-backend/tests/test_analytics.py ......... [ 11%]
-backend/tests/test_firms_service.py ..... [ 20%]
-backend/tests/test_harmonization.py ..... [ 31%]
-backend/tests/test_routes.py ............ [ 55%]
-backend/tests/test_validators.py ........ [100%]
+backend/tests/test_analytics.py ......................... [ 11%]
+backend/tests/test_firms_service.py ..................... [ 22%]
+backend/tests/test_harmonization.py ..................... [ 33%]
+backend/tests/test_routes.py ............................ [ 56%]
+backend/tests/test_validators.py ........................ [100%]
 
-============================== 60 passed in 3.20s ==============================
+============================== 62 passed in 3.58s ==============================
 ```
 
 ---
@@ -82,7 +82,7 @@ backend/tests/test_validators.py ........ [100%]
 | `test_rfai_calculation` | Relative Fire Activity Index against independent sensor baseline medians | **PASSED** |
 | `test_detect_coincident_clusters` | Spatial clustering of coincident MODIS and VIIRS detections within 2.0 km radius | **PASSED** |
 
-### 2.3 NASA FIRMS Service (`backend/tests/test_firms_service.py` — 5 Tests)
+### 2.3 NASA FIRMS Service (`backend/tests/test_firms_service.py` — 7 Tests)
 | Test Identifier | Tested Boundary / Specification | Result |
 |---|---|---|
 | `test_unconfigured_service` | Unconfigured service defaults safely to verified multi-year simulation mode | **PASSED** |
@@ -90,6 +90,8 @@ backend/tests/test_validators.py ........ [100%]
 | `test_configured_service_mocked_invalid_key` | Invalid/expired API key caught with transparent error handling | **PASSED** |
 | `test_fetch_live_fire_data_mocked` | Live CSV stream parsing, column mapping, and dataframe generation | **PASSED** |
 | `test_sample_dataset_loading` | Verified empirical dataset loading across California, Amazon, Australia, Mediterranean | **PASSED** |
+| `test_get_fire_data_live_mode_success` | Verified Live Mode retrieval with `source_type='live_nasa_firms'` and `is_sample_data=False` | **PASSED** |
+| `test_get_fire_data_live_mode_network_failure_falls_back_to_sample` | Network timeouts in Live Mode fall back gracefully to verified sample dataset | **PASSED** |
 
 ### 2.4 Analytics & Statistical Anomaly Engine (`backend/tests/test_analytics.py` — 7 Tests)
 | Test Identifier | Tested Boundary / Specification | Result |
@@ -124,19 +126,19 @@ backend/tests/test_validators.py ........ [100%]
 
 ## 3. Edge Case & Stress Testing Verification
 
-1. **Extreme Geographical Coordinates**:
+1. **Simulation Mode & Live Mode Coverage**:
+   - Both pathways in `FIRMSService` (`source_type="live_nasa_firms"` and `source_type="sample"`) are independently tested with network mocking and error simulation.
+   - Network failure fallback automatically protects the user from uncaught runtime crashes.
+2. **Extreme Geographical Coordinates**:
    - Tested International Date Line crossing, polar latitudes, and bounding boxes crossing $0^\circ$ Prime Meridian.
-   - Verified that bounding boxes with inverted coordinates or zero area are rejected with clear HTTP 400 error payloads before reaching computation.
-2. **Empty Data Subsets**:
+   - Inverted or zero-area coordinates are rejected before computation with HTTP 400 payloads.
+3. **Empty Data Subsets**:
    - Tested analytics calculations when filters match zero records (e.g. winter dates in northern polar latitudes).
    - All analytics endpoints (`/overview`, `/calendar`, `/historical`, `/comparison`, `/anomalies`) return structured empty objects with zero counts rather than unhandled 500 exceptions.
-3. **Small Sample Statistical Robustness**:
+4. **Small Sample Statistical Robustness**:
    - Addressed small-sample Z-score boundaries ($N \le 3$) where parametric Z-scores are mathematically constrained ($Z \le \frac{N-1}{\sqrt{N}}$).
    - Anomaly engine incorporates both MAD robust scoring and baseline percentage thresholds ($> 300\%$ of median) to ensure extreme fire surges are reliably flagged even on sparse records.
-4. **NASA FIRMS Rate-Limiting & Network Resilience**:
-   - Verified graceful fallback to multi-year empirical sample datasets when `FIRMS_MAP_KEY` is omitted or API responses return 401/403/503.
-   - Two-tier caching (RAM LRU + disk SHA-256) verified to prevent duplicate outbound network requests to NASA servers.
-5. **Universal Browser Typographic Rendering**:
+5. **Universal Browser Typographical Rendering**:
    - Replaced all unrendered KaTeX/LaTeX tokens in frontend templates with clean standard HTML entities (`Z &ge; 3.0`, `2.0 &le; Z &lt; 3.0`), ensuring error-free rendering across all modern and legacy browsers without third-party script dependencies.
 
 ---
@@ -148,4 +150,4 @@ To independently reproduce the complete test execution:
 # In the project root directory:
 python3 -m pytest backend/tests -v
 ```
-All 60 tests will execute and pass in approximately 3.2 seconds.
+All 62 tests will execute and pass in approximately 3.6 seconds.

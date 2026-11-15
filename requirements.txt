@@ -7,3 +7,5 @@ requests>=2.31.0
 pytest>=8.0.0
 folium>=0.15.0
 plotly>=5.18.0
+gunicorn>=21.2.0
+

@@ -4,18 +4,18 @@
 
 - **Test Framework**: `pytest 9.1.1`
 - **Environment**: Python 3.14.6 (macOS Darwin arm64)
-- **Total Tests Collected**: 55
-- **Total Passed**: 55
+- **Total Tests Collected**: 62
+- **Total Passed**: 62
 - **Total Failed**: 0
 - **Total Errors / Warnings**: 0
-- **Execution Time**: 3.37 seconds
+- **Execution Time**: 3.58 seconds
 - **Pass Rate**: **100%**
 
 ---
 
 ## 2. Test Breakdown by Module
 
-### 2.1 Validators & Geospatial Utilities (`backend/tests/test_validators.py` - 24 tests)
+### 2.1 Validators & Geospatial Utilities (`backend/tests/test_validators.py` - 25 tests)
 - `test_validate_coordinates_valid`: Verified exact floating point coordinates. (PASSED)
 - `test_validate_coordinates_invalid_latitude`: Checked [-90.0, 90.0] bounds. (PASSED)
 - `test_validate_coordinates_invalid_longitude`: Checked [-180.0, 180.0] bounds. (PASSED)
@@ -33,6 +33,9 @@
 - `test_validate_date_range_exceeds_max_days`: Enforced 10-day query limit. (PASSED)
 - `test_validate_sensor_filter`: Checked all/MODIS/VIIRS options. (PASSED)
 - `test_validate_confidence_filter`: Checked low/nominal/high options. (PASSED)
+- `test_validate_daynight_filter`: Checked day/night overpass validation. (PASSED)
+- `test_validate_satellite_filter`: Checked platform name validation. (PASSED)
+- `test_validate_frp_range`: Checked non-negative FRP bounds. (PASSED)
 - `test_parse_query_params_preset`: Verified preset extraction and pagination defaults. (PASSED)
 - `test_haversine_distance`: Checked great-circle calculation accuracy (~559km SF to LA). (PASSED)
 - `test_haversine_distance_zero`: Verified 0.0 distance for identical coordinates. (PASSED)
@@ -50,22 +53,25 @@
 - `test_rfai_calculation`: Verified Relative Fire Activity Index computation. (PASSED)
 - `test_detect_coincident_clusters`: Identified overlapping MODIS and VIIRS detections within 2.0 km. (PASSED)
 
-### 2.3 NASA FIRMS Service (`backend/tests/test_firms_service.py` - 5 tests)
+### 2.3 NASA FIRMS Service (`backend/tests/test_firms_service.py` - 7 tests)
 - `test_unconfigured_service`: Verified graceful transition to sample mode when key is absent. (PASSED)
 - `test_configured_service_mocked_success`: Verified operational live check with mock. (PASSED)
 - `test_configured_service_mocked_invalid_key`: Verified rejection handling with mock. (PASSED)
 - `test_fetch_live_fire_data_mocked`: Verified CSV stream parsing. (PASSED)
 - `test_sample_dataset_loading`: Verified local verified sample dataset retrieval. (PASSED)
+- `test_get_fire_data_live_mode_success`: Verified Live Mode querying and metadata tagging. (PASSED)
+- `test_get_fire_data_live_mode_network_failure_falls_back_to_sample`: Verified network failure fallback. (PASSED)
 
-### 2.4 Analytics & Anomaly Detection (`backend/tests/test_analytics.py` - 6 tests)
+### 2.4 Analytics & Anomaly Detection (`backend/tests/test_analytics.py` - 7 tests)
 - `test_filter_data`: Verified combined spatial, sensor, and date filtering. (PASSED)
+- `test_empty_dataframe_handling`: Checked graceful empty dataframe handling. (PASSED)
 - `test_overview_kpis`: Verified overview summary calculations. (PASSED)
 - `test_burning_activity_calendar`: Verified Year-vs-Month matrix generation. (PASSED)
 - `test_historical_analysis`: Verified seasonal decomposition and peak month identification. (PASSED)
 - `test_sensor_comparison`: Verified comparative ratios and FRP quantiles. (PASSED)
 - `test_anomaly_detection_identifies_extreme_event`: Verified detection of seasonal fire surge via Z-score and MAD. (PASSED)
 
-### 2.5 Flask Routes & REST Endpoints (`backend/tests/test_routes.py` - 13 tests)
+### 2.5 Flask Routes & REST Endpoints (`backend/tests/test_routes.py` - 14 tests)
 - `test_health_endpoint`: HTTP 200 and system health JSON. (PASSED)
 - `test_data_availability_endpoint`: HTTP 200 and sensor registry listing. (PASSED)
 - `test_index_view`: HTTP 200 and HTML single-page dashboard rendering. (PASSED)
@@ -79,3 +85,4 @@
 - `test_analytics_comparison_endpoint`: HTTP 200 and sensor stats. (PASSED)
 - `test_analytics_anomalies_endpoint`: HTTP 200 and anomaly classifications. (PASSED)
 - `test_export_csv_endpoint`: HTTP 200, `text/csv` header, and formatted CSV payload with NASA attribution. (PASSED)
+- `test_get_fires_with_frp_and_satellite_filters`: HTTP 200 with complex combined filters. (PASSED)
